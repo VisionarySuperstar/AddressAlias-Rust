@@ -1,6 +1,7 @@
+use crate::state::Alias;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use cosmwasm_std::{HumanAddr, Uint128};
+// use cosmwasm_std::{HumanAddr, Uint128};
 
 // === STRUCTS ===
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -8,15 +9,10 @@ pub struct InitMsg {
   pub max_alias_size: i32
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct Alias {
-  alias: String
-}
-
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct ShowResponse {
-  pub alias: Alias,
+  pub alias: Option<Alias>,
 }
 
 // === ENUMS ===
@@ -27,8 +23,7 @@ pub struct ShowResponse {
 pub enum HandleAnswer {
   Create {
     status: ResponseStatus,
-    message: String,
-    alias: Alias
+    message: String
   },
   Destroy {
     status: ResponseStatus,
@@ -49,16 +44,13 @@ pub enum HandleAnswer {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HandleMsg {
-  Create { alias: String },
-  Destroy { alias: String },
-  Update { alias: String }
+  Create { alias_string: String },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-  Index {},
-  Show { alias: String },
+  Show { alias_string: String },
 }
 
 // success or failure response
