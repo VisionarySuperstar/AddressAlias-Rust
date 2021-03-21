@@ -35,10 +35,6 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     env: Env,
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
-    // match msg {
-    //     HandleMsg::Increment {} => try_increment(deps, env),
-    //     HandleMsg::Reset { count } => try_reset(deps, env, count),
-    // }
     let response = match msg {
       HandleMsg::Create { alias_string } => try_create(deps, env, alias_string),
       HandleMsg::Destroy { alias_string } => try_destroy(deps, env, alias_string),
@@ -70,7 +66,7 @@ fn try_create<S: Storage, A: Api, Q: Querier>(deps: &mut Extern<S, A, Q>, env: E
   
   if alias_string_byte_slice.len() > config.max_alias_size.into() {
     status = Failure;
-    response_message.push_str(&format!("Message is too long."));
+    response_message.push_str(&format!("Alias is too long."));
   } else {
     let sender_human_address = env.message.sender;
     let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
@@ -148,25 +144,6 @@ mod tests {
   }
 
   #[test]
-  fn test_try_create() {
-    let alias_string: &str = "nailbiter";
-    let mut deps = mock_dependencies(20, &coins(2, "token"));
-    let human_address = "secret23e2f2f32f2f2321e1";
-    let env = mock_env(human_address, &coins(2, "token"));
-    let msg = InitMsg { max_alias_size: 3333 };
-
-    // Initialize contract instance
-    init(&mut deps, env.clone(), msg).unwrap();
-    // Create alias
-    let create_alias_message = HandleMsg::Create { alias_string: alias_string.to_string() };
-    handle(&mut deps, env, create_alias_message).unwrap();
-    // Query alias
-    let show_response = query(&mut deps, QueryMsg::Show { alias_string: alias_string.to_string() }).unwrap();
-    let val: ShowResponse = from_binary(&show_response).unwrap();
-    assert_eq!(human_address, val.alias.unwrap().human_address.to_string());
-  }
-
-  #[test]
   fn test_try_destroy() {
     let alias_string: &str = "nailbiter";
     let human_address = "secret23e2f2f32f2f2321e1";
@@ -202,8 +179,22 @@ mod tests {
   }
 
   #[test]
-  fn show() {
-    test_try_create();
+  fn test_try_create() {
+    let alias_string: &str = "nailbiter";
+    let mut deps = mock_dependencies(20, &coins(2, "token"));
+    let human_address = "secret23e2f2f32f2f2321e1";
+    let env = mock_env(human_address, &coins(2, "token"));
+    let msg = InitMsg { max_alias_size: 3333 };
+
+    // Initialize contract instance
+    init(&mut deps, env.clone(), msg).unwrap();
+    // Create alias
+    let create_alias_message = HandleMsg::Create { alias_string: alias_string.to_string() };
+    handle(&mut deps, env, create_alias_message).unwrap();
+    // Query alias
+    let show_response = query(&mut deps, QueryMsg::Show { alias_string: alias_string.to_string() }).unwrap();
+    let val: ShowResponse = from_binary(&show_response).unwrap();
+    assert_eq!(human_address, val.alias.unwrap().human_address.to_string());
   }
 }
 
