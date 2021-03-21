@@ -40,7 +40,8 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     //     HandleMsg::Reset { count } => try_reset(deps, env, count),
     // }
     let response = match msg {
-      HandleMsg::Create { alias_string } => try_create(deps, env, alias_string)
+      HandleMsg::Create { alias_string } => try_create(deps, env, alias_string),
+      HandleMsg::Destroy { alias_string } => try_destroy(deps, env, alias_string),
     };
     pad_handle_result(response, BLOCK_SIZE)
 }
@@ -53,20 +54,6 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     QueryMsg::Show { alias_string } => to_binary(&query_alias(deps, alias_string)?),
   }
 }
-
-// pub fn query<S: Storage, A: Api, Q: Querier>(
-//     deps: &Extern<S, A, Q>,
-//     msg: QueryMsg,
-// ) -> StdResult<Binary> {
-//     match msg {
-//         QueryMsg::GetCount {} => to_binary(&query_count(deps)?),
-//     }
-// }
-
-// fn query_count<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdResult<CountResponse> {
-//     let state = config_read(&deps.storage).load()?;
-//     Ok(CountResponse { count: state.count })
-// }
 
 // === PRIVATE ===
 fn query_alias<S: Storage, A: Api, Q: Querier>(deps: &mut Extern<S, A, Q>, alias_string: String) -> StdResult<ShowResponse> {
@@ -88,11 +75,41 @@ fn try_create<S: Storage, A: Api, Q: Querier>(deps: &mut Extern<S, A, Q>, env: E
     let sender_human_address = env.message.sender;
     let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
     let new_alias = Alias {
-      owner: sender_human_address,
+      human_address: sender_human_address,
     };
     alias_storage.set_alias(alias_string_byte_slice, new_alias);
     status = Success;
     response_message.push_str(&format!("Alias created"));
+  }
+
+  Ok(HandleResponse {
+    messages: vec![],
+    log: vec![],
+    data: Some(to_binary(&HandleAnswer::Create {
+      status,
+      message: response_message,
+    })?),
+  })
+}
+
+fn try_destroy<S: Storage, A: Api, Q: Querier>(deps: &mut Extern<S, A, Q>, env: Env, alias_string: String) -> StdResult<HandleResponse> {
+  let status: ResponseStatus;
+  let mut response_message = String::new();
+  let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
+  let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string);
+  let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
+  let sender_human_address = env.clone().message.sender;
+
+  if alias_object.is_none() {
+    return Err(StdError::generic_err("Alias does not exist."));
+  }
+  let alias_object: Alias = alias_object.unwrap();
+  if sender_human_address != alias_object.human_address {
+    return Err(StdError::Unauthorized { backtrace: None });
+  } else {
+    alias_storage.remove_alias(alias_string_byte_slice);
+    status = Success;
+    response_message.push_str(&format!("Alias destroyed"));
   }
 
   Ok(HandleResponse {
@@ -113,22 +130,6 @@ fn valid_alias_size(val: i32) -> Option<u16> {
   }
 }
 
-// pub fn try_reset<S: Storage, A: Api, Q: Querier>(
-//     deps: &mut Extern<S, A, Q>,
-//     env: Env,
-//     count: i32,
-// ) -> StdResult<HandleResponse> {
-//     let sender_address_raw = deps.api.canonical_address(&env.message.sender)?;
-//     config(&mut deps.storage).update(|mut state| {
-//         if sender_address_raw != state.owner {
-//             return Err(StdError::Unauthorized { backtrace: None });
-//         }
-//         state.count = count;
-//         Ok(state)
-//     })?;
-//     Ok(HandleResponse::default())
-// }
-
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -140,56 +141,69 @@ mod tests {
     let mut deps = mock_dependencies(20, &[]);
     let msg = InitMsg { max_alias_size: 3333 };
     let env = mock_env("creator", &coins(1000, "earth"));
+
     // we can just call .unwrap() to assert this was a success
     let res = init(&mut deps, env, msg).unwrap();
     assert_eq!(0, res.messages.len());
-
-    // it worked, let's query the state
-    // let res = query(&deps, QueryMsg::GetCount {}).unwrap();
-    // let value: CountResponse = from_binary(&res).unwrap();
-    // assert_eq!(17, value.count);
   }
 
-    #[test]
-    fn create() {
-      let mut deps = mock_dependencies(20, &coins(2, "token"));
+  #[test]
+  fn test_try_create() {
+    let alias_string: &str = "nailbiter";
+    let mut deps = mock_dependencies(20, &coins(2, "token"));
+    let human_address = "secret23e2f2f32f2f2321e1";
+    let env = mock_env(human_address, &coins(2, "token"));
+    let msg = InitMsg { max_alias_size: 3333 };
 
-      let msg = InitMsg { max_alias_size: 3333 };
-      let env = mock_env("creator", &coins(2, "token"));
-      let _res = init(&mut deps, env, msg).unwrap();
-      let _msg = HandleMsg::Create { alias_string: "alex".to_string() };
-      let unauth_env = mock_env("anyone", &coins(2, "token"));
-      handle(&mut deps, unauth_env, _msg).unwrap();
-      let query_response = query(&mut deps, QueryMsg::Show { alias_string: "alex".to_string() }).unwrap();
-      let val: ShowResponse = from_binary(&query_response).unwrap();
-      assert_eq!("anyone".to_string(), val.alias.unwrap().owner.to_string());
-    }
+    // Initialize contract instance
+    init(&mut deps, env.clone(), msg).unwrap();
+    // Create alias
+    let create_alias_message = HandleMsg::Create { alias_string: alias_string.to_string() };
+    handle(&mut deps, env, create_alias_message).unwrap();
+    // Query alias
+    let show_response = query(&mut deps, QueryMsg::Show { alias_string: alias_string.to_string() }).unwrap();
+    let val: ShowResponse = from_binary(&show_response).unwrap();
+    assert_eq!(human_address, val.alias.unwrap().human_address.to_string());
+  }
 
-    // #[test]
-    // fn reset() {
-    //     let mut deps = mock_dependencies(20, &coins(2, "token"));
+  #[test]
+  fn test_try_destroy() {
+    let alias_string: &str = "nailbiter";
+    let human_address = "secret23e2f2f32f2f2321e1";
+    let mut deps = mock_dependencies(20, &coins(2, "token"));
+    let msg = InitMsg { max_alias_size: 3333 };
+    let env = mock_env(human_address, &coins(2, "token"));
+    let env_two = mock_env("user2", &coins(2, "token"));
+    
+    // Initialize contract instance
+    init(&mut deps, env.clone(), msg).unwrap();
+    // Create alias
+    let create_alias_message = HandleMsg::Create { alias_string: alias_string.to_string() };
+    handle(&mut deps, env.clone(), create_alias_message).unwrap();
+    // Query alias
+    let show_response = query(&mut deps, QueryMsg::Show { alias_string: alias_string.to_string() }).unwrap();
+    let val: ShowResponse = from_binary(&show_response).unwrap();
+    assert_eq!(human_address.to_string(), val.alias.unwrap().human_address.to_string());
+    // Try deleting an alias that does not exist
+    let destroy_alias_message = HandleMsg::Destroy { alias_string: "idonotexist".to_string() };    
+    let res = handle(&mut deps, env.clone(), destroy_alias_message);
+    assert_eq!(res.is_err(), true);
+    // Try deleting an alias with a different user
+    let destroy_alias_message = HandleMsg::Destroy { alias_string: alias_string.to_string() };    
+    let res = handle(&mut deps, env_two, destroy_alias_message);
+    assert_eq!(res.is_err(), true);
+    // Destroy alias
+    let destroy_alias_message = HandleMsg::Destroy { alias_string: alias_string.to_string() };
+    handle(&mut deps, env, destroy_alias_message).unwrap();
+    // Query destroyed alias
+    let query_response = query(&mut deps, QueryMsg::Show { alias_string: alias_string.to_string() }).unwrap();
+    let val: ShowResponse = from_binary(&query_response).unwrap();
+    assert_eq!(val.alias.is_none(), true);
+  }
 
-    //     let msg = InitMsg { count: 17 };
-    //     let env = mock_env("creator", &coins(2, "token"));
-    //     let _res = init(&mut deps, env, msg).unwrap();
-
-    //     // not anyone can reset
-    //     let unauth_env = mock_env("anyone", &coins(2, "token"));
-    //     let msg = HandleMsg::Reset { count: 5 };
-    //     let res = handle(&mut deps, unauth_env, msg);
-    //     match res {
-    //         Err(StdError::Unauthorized { .. }) => {}
-    //         _ => panic!("Must return unauthorized error"),
-    //     }
-
-    //     // only the original creator can reset the counter
-    //     let auth_env = mock_env("creator", &coins(2, "token"));
-    //     let msg = HandleMsg::Reset { count: 5 };
-    //     let _res = handle(&mut deps, auth_env, msg).unwrap();
-
-    //     // should now be 5
-    //     let res = query(&deps, QueryMsg::GetCount {}).unwrap();
-    //     let value: CountResponse = from_binary(&res).unwrap();
-    //     assert_eq!(5, value.count);
+  #[test]
+  fn show() {
+    test_try_create();
+  }
 }
 

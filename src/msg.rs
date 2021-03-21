@@ -45,6 +45,7 @@ pub enum HandleAnswer {
 #[serde(rename_all = "snake_case")]
 pub enum HandleMsg {
   Create { alias_string: String },
+  Destroy { alias_string: String }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

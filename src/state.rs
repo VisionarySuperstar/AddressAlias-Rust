@@ -13,7 +13,7 @@ pub static CONFIG_KEY: &[u8] = b"config";
 // === STRUCTS ===
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Alias {
-  pub owner: HumanAddr,
+  pub human_address: HumanAddr,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -34,6 +34,10 @@ impl<'a, S: Storage> AliasStorage<'a, S> {
 
   pub fn get_alias(&mut self, key: &String) -> Option<Alias> {
     self.as_readonly().get(key)
+  }
+
+  pub fn remove_alias(&mut self, key: &[u8]) {
+    remove(&mut self.storage, &key);
   }
 
   pub fn set_alias(&mut self, key: &[u8], value: Alias) {
@@ -74,6 +78,16 @@ pub fn may_load<T: DeserializeOwned, S: ReadonlyStorage>(
     Some(value) => Bincode2::deserialize(&value).map(Some),
     None => Ok(None),
   }
+}
+
+/// Removes an item from storage
+///
+/// # Arguments
+///
+/// * `storage` - a mutable reference to the storage this item is in
+/// * `key` - a byte slice representing the key that accesses the stored item
+pub fn remove<S: Storage>(storage: &mut S, key: &[u8]) {
+  storage.remove(key);
 }
 
 // Returns StdResult<()> resulting from saving an item to storage
