@@ -34,10 +34,6 @@ pub enum HandleAnswer {
     status: ResponseStatus,
     message: String,
     alias: Alias
-  },
-  Status {
-    status: ResponseStatus,
-    message: String
   }
 }
 
