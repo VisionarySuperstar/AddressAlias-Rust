@@ -134,6 +134,9 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
         alias_storage.remove_alias(alias_string_byte_slice);
         status = Success;
         response_message.push_str(&format!("Alias destroyed"));
+        let sender_address_raw = deps.api.canonical_address(&env.message.sender)?;
+        let mut aliases_storage = AliasesStorage::from_storage(&mut deps.storage);
+        aliases_storage.remove_alias(&sender_address_raw, alias_string)
     }
 
     Ok(HandleResponse {
@@ -220,7 +223,7 @@ mod tests {
         let destroy_alias_message = HandleMsg::Destroy {
             alias_string: alias_string.to_string(),
         };
-        handle(&mut deps, env, destroy_alias_message).unwrap();
+        handle(&mut deps, env.clone(), destroy_alias_message).unwrap();
         // Query destroyed alias
         let query_response = query(
             &mut deps,
@@ -231,6 +234,10 @@ mod tests {
         .unwrap();
         let val: ShowResponse = from_binary(&query_response).unwrap();
         assert_eq!(val.alias.is_none(), true);
+        // Query aliases to see that it has been removed from the Vector
+        let index_response = query(&mut deps, QueryMsg::Index { env: env }).unwrap();
+        let val: IndexResponse = from_binary(&index_response).unwrap();
+        assert_eq!(0, val.aliases.unwrap().len());
     }
 
     #[test]

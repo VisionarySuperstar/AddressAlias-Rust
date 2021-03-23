@@ -91,6 +91,13 @@ impl<'a, S: Storage> AliasesStorage<'a, S> {
         self.as_readonly().get(key)
     }
 
+    pub fn remove_alias(&mut self, key: &CanonicalAddr, alias_string: String) {
+        let mut aliases: Vec<String> = self.get_aliases(key).unwrap();
+        let index = aliases.iter().position(|x| *x == alias_string).unwrap();
+        aliases.remove(index);
+        save(&mut self.storage, &key.as_slice().to_vec(), &aliases).ok();
+    }
+
     // private
 
     fn as_readonly(&self) -> ReadonlyAliasesStorageImpl<PrefixedStorage<S>> {
