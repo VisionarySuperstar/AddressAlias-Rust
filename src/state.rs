@@ -94,7 +94,11 @@ impl<'a, S: Storage> AliasesStorage<'a, S> {
     pub fn remove_alias(&mut self, key: &CanonicalAddr, alias_string: String) {
         let mut aliases: Vec<String> = self.get_aliases(key).unwrap();
         let index = aliases.iter().position(|x| *x == alias_string).unwrap();
-        aliases.remove(index);
+
+        // Remember that remove has a runtime of O(n) as all elements after the index need to be shifted.
+        // Vec::swap_remove has a runtime of O(1) as it swaps the to-be-removed element with the last one.
+        // If the order of elements is not important in your case, use swap_remove instead of remove!
+        aliases.swap_remove(index);
         save(&mut self.storage, &key.as_slice().to_vec(), &aliases).ok();
     }
 
