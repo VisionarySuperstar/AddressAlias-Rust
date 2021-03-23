@@ -261,8 +261,17 @@ mod tests {
         let val: ShowResponse = from_binary(&show_response).unwrap();
         assert_eq!(human_address, val.alias.unwrap().human_address.to_string());
         // Query index
-        let index_response = query(&mut deps, QueryMsg::Index { env: env }).unwrap();
+        let index_response = query(&mut deps, QueryMsg::Index { env: env.clone() }).unwrap();
         let val: IndexResponse = from_binary(&index_response).unwrap();
         assert_eq!(1, val.aliases.unwrap().len());
+        // Create alias
+        let create_alias_message = HandleMsg::Create {
+            alias_string: "asdfasf".to_string(),
+        };
+        handle(&mut deps, env.clone(), create_alias_message).unwrap();
+        // Query index
+        let index_response = query(&mut deps, QueryMsg::Index { env: env }).unwrap();
+        let val: IndexResponse = from_binary(&index_response).unwrap();
+        assert_eq!(2, val.aliases.unwrap().len());
     }
 }

@@ -65,10 +65,18 @@ pub struct AliasesStorage<'a, S: Storage> {
 }
 impl<'a, S: Storage> AliasesStorage<'a, S> {
     pub fn add_alias(&mut self, key: &CanonicalAddr, alias_string: String) {
+        let aliases = self.get_aliases(key);
+        let mut aliases_to_save: Vec<String>;
+        if aliases.is_none() {
+            aliases_to_save = vec![alias_string];
+        } else {
+            aliases_to_save = aliases.unwrap();
+            aliases_to_save.push(alias_string);
+        }
         save(
             &mut self.storage,
             &key.as_slice().to_vec(),
-            &vec![alias_string],
+            &aliases_to_save,
         )
         .ok();
     }
