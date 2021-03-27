@@ -1,5 +1,6 @@
 use crate::msg::ResponseStatus::{Failure, Success};
 use crate::msg::{HandleAnswer, HandleMsg, InitMsg, QueryMsg, ResponseStatus, ShowResponse};
+use crate::state::AliasReadOnlyStorage;
 use crate::state::{load, save, Alias, AliasStorage, Config, CONFIG_KEY};
 use cosmwasm_std::{
     to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier, QueryResult, StdError,
@@ -41,13 +42,11 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     pad_handle_result(response, BLOCK_SIZE)
 }
 
-pub fn query<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    msg: QueryMsg,
-) -> QueryResult {
+pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
     match msg {
         QueryMsg::Show { alias_string } => {
-            let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
+            let alias_storage = AliasReadOnlyStorage::from_storage(&deps.storage);
+
             let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string);
 
             if alias_object.is_none() {
