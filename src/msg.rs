@@ -1,5 +1,4 @@
 use crate::state::Alias;
-use cosmwasm_std::Env;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -7,11 +6,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InitMsg {
     pub max_alias_size: i32,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct IndexResponse {
-    pub aliases: Option<Vec<String>>,
 }
 
 // We define a custom struct for each query response
@@ -52,7 +46,6 @@ pub enum HandleMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-    Index { env: Env },
     Show { alias_string: String },
 }
 

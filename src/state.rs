@@ -1,4 +1,4 @@
-use cosmwasm_std::{CanonicalAddr, HumanAddr, ReadonlyStorage, StdError, StdResult, Storage};
+use cosmwasm_std::{HumanAddr, ReadonlyStorage, StdError, StdResult, Storage};
 use cosmwasm_storage::PrefixedStorage;
 use schemars::JsonSchema;
 use secret_toolkit::serialization::{Bincode2, Serde};
@@ -8,7 +8,6 @@ use std::any::type_name;
 
 // === STATICS ===
 pub static ALIAS_PREFIX: &[u8] = b"alias";
-pub static ALIASES_PREFIX: &[u8] = b"aliases";
 pub static CONFIG_KEY: &[u8] = b"config";
 
 // === STRUCTS ===
@@ -57,63 +56,6 @@ impl<'a, S: ReadonlyStorage> ReadonlyAliasStorageImpl<'a, S> {
     pub fn get(&self, key: &String) -> Option<Alias> {
         let alias: Option<Alias> = may_load(self.0, &key.as_bytes()).ok().unwrap();
         alias
-    }
-}
-
-pub struct AliasesStorage<'a, S: Storage> {
-    storage: PrefixedStorage<'a, S>,
-}
-impl<'a, S: Storage> AliasesStorage<'a, S> {
-    pub fn add_alias(&mut self, key: &CanonicalAddr, alias_string: String) {
-        let aliases = self.get_aliases(key);
-        let mut aliases_to_save: Vec<String>;
-        if aliases.is_none() {
-            aliases_to_save = vec![alias_string];
-        } else {
-            aliases_to_save = aliases.unwrap();
-            aliases_to_save.push(alias_string);
-        }
-        save(
-            &mut self.storage,
-            &key.as_slice().to_vec(),
-            &aliases_to_save,
-        )
-        .ok();
-    }
-
-    pub fn from_storage(storage: &'a mut S) -> Self {
-        Self {
-            storage: PrefixedStorage::new(ALIASES_PREFIX, storage),
-        }
-    }
-
-    pub fn get_aliases(&mut self, key: &CanonicalAddr) -> Option<Vec<String>> {
-        self.as_readonly().get(key)
-    }
-
-    pub fn remove_alias(&mut self, key: &CanonicalAddr, alias_string: String) {
-        let mut aliases: Vec<String> = self.get_aliases(key).unwrap();
-        let index = aliases.iter().position(|x| *x == alias_string).unwrap();
-
-        // Remember that remove has a runtime of O(n) as all elements after the index need to be shifted.
-        // Vec::swap_remove has a runtime of O(1) as it swaps the to-be-removed element with the last one.
-        // If the order of elements is not important in your case, use swap_remove instead of remove!
-        aliases.swap_remove(index);
-        save(&mut self.storage, &key.as_slice().to_vec(), &aliases).ok();
-    }
-
-    // private
-
-    fn as_readonly(&self) -> ReadonlyAliasesStorageImpl<PrefixedStorage<S>> {
-        ReadonlyAliasesStorageImpl(&self.storage)
-    }
-}
-
-struct ReadonlyAliasesStorageImpl<'a, S: ReadonlyStorage>(&'a S);
-impl<'a, S: ReadonlyStorage> ReadonlyAliasesStorageImpl<'a, S> {
-    pub fn get(&self, key: &CanonicalAddr) -> Option<Vec<String>> {
-        let aliases: Option<Vec<String>> = may_load(self.0, &key.as_slice().to_vec()).ok().unwrap();
-        aliases
     }
 }
 

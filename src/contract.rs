@@ -1,10 +1,8 @@
 use crate::msg::ResponseStatus::{Failure, Success};
-use crate::msg::{
-    HandleAnswer, HandleMsg, IndexResponse, InitMsg, QueryMsg, ResponseStatus, ShowResponse,
-};
-use crate::state::{load, save, Alias, AliasStorage, AliasesStorage, Config, CONFIG_KEY};
+use crate::msg::{HandleAnswer, HandleMsg, InitMsg, QueryMsg, ResponseStatus, ShowResponse};
+use crate::state::{load, save, Alias, AliasStorage, Config, CONFIG_KEY};
 use cosmwasm_std::{
-    to_binary, Api, Binary, Env, Extern, HandleResponse, InitResponse, Querier, StdError,
+    to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier, QueryResult, StdError,
     StdResult, Storage,
 };
 use secret_toolkit::utils::pad_handle_result;
@@ -46,35 +44,24 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
 pub fn query<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     msg: QueryMsg,
-) -> StdResult<Binary> {
+) -> QueryResult {
     match msg {
-        QueryMsg::Show { alias_string } => to_binary(&query_alias(deps, alias_string)?),
-        QueryMsg::Index { env } => to_binary(&query_aliases(deps, env)?),
+        QueryMsg::Show { alias_string } => {
+            let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
+            let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string);
+
+            if alias_object.is_none() {
+                return Err(StdError::generic_err("Alias does not exist."));
+            }
+
+            return Ok(to_binary(&ShowResponse {
+                alias: alias_object,
+            })?);
+        }
     }
 }
 
 // === PRIVATE ===
-fn query_aliases<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-) -> StdResult<IndexResponse> {
-    let mut aliases_storage = AliasesStorage::from_storage(&mut deps.storage);
-    let sender_address_raw = deps.api.canonical_address(&env.message.sender)?;
-    let aliases: Option<Vec<String>> = aliases_storage.get_aliases(&sender_address_raw);
-    Ok(IndexResponse { aliases: aliases })
-}
-
-fn query_alias<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    alias_string: String,
-) -> StdResult<ShowResponse> {
-    let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
-    let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string);
-    Ok(ShowResponse {
-        alias: alias_object,
-    })
-}
-
 fn try_create<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -95,9 +82,6 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
             human_address: sender_human_address,
         };
         alias_storage.set_alias(alias_string_byte_slice, new_alias);
-        let mut aliases_storage = AliasesStorage::from_storage(&mut deps.storage);
-        let sender_address_raw = deps.api.canonical_address(&env.message.sender)?;
-        aliases_storage.add_alias(&sender_address_raw, alias_string);
         status = Success;
         response_message.push_str(&format!("Alias created"));
     }
@@ -134,9 +118,6 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
         alias_storage.remove_alias(alias_string_byte_slice);
         status = Success;
         response_message.push_str(&format!("Alias destroyed"));
-        let sender_address_raw = deps.api.canonical_address(&env.message.sender)?;
-        let mut aliases_storage = AliasesStorage::from_storage(&mut deps.storage);
-        aliases_storage.remove_alias(&sender_address_raw, alias_string)
     }
 
     Ok(HandleResponse {
@@ -230,14 +211,8 @@ mod tests {
             QueryMsg::Show {
                 alias_string: alias_string.to_string(),
             },
-        )
-        .unwrap();
-        let val: ShowResponse = from_binary(&query_response).unwrap();
-        assert_eq!(val.alias.is_none(), true);
-        // Query aliases to see that it has been removed from the Vector
-        let index_response = query(&mut deps, QueryMsg::Index { env: env }).unwrap();
-        let val: IndexResponse = from_binary(&index_response).unwrap();
-        assert_eq!(0, val.aliases.unwrap().len());
+        );
+        assert_eq!(query_response.is_err(), true);
     }
 
     #[test]
@@ -267,18 +242,10 @@ mod tests {
         .unwrap();
         let val: ShowResponse = from_binary(&show_response).unwrap();
         assert_eq!(human_address, val.alias.unwrap().human_address.to_string());
-        // Query index
-        let index_response = query(&mut deps, QueryMsg::Index { env: env.clone() }).unwrap();
-        let val: IndexResponse = from_binary(&index_response).unwrap();
-        assert_eq!(1, val.aliases.unwrap().len());
         // Create alias
         let create_alias_message = HandleMsg::Create {
             alias_string: "asdfasf".to_string(),
         };
         handle(&mut deps, env.clone(), create_alias_message).unwrap();
-        // Query index
-        let index_response = query(&mut deps, QueryMsg::Index { env: env }).unwrap();
-        let val: IndexResponse = from_binary(&index_response).unwrap();
-        assert_eq!(2, val.aliases.unwrap().len());
     }
 }
