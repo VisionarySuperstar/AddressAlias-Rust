@@ -45,7 +45,7 @@ secretcli query compute list-code
 ```sh
 INIT='{"max_alias_size": 99}'
 CODE_ID=1
-secretcli tx compute instantiate $CODE_ID "INIT" --from a --label "secret alias" -y --keyring-backend test
+secretcli tx compute instantiate $CODE_ID "$INIT" --from a --label "secret alias" -y --keyring-backend test
 ```
 7. Check instance creation
 ```sh
@@ -68,7 +68,34 @@ secretcli query compute query $CONTRACT_INSTANCE_ADDRESS '{"show": { "alias_stri
 
 Same as above except you need to create a wallet and add tokens to it from the faucet. Specify the alias for that wallet when doing tx compute. In the examples below, I use my wallet on the testnet that I have aliased as 'testyyyy' locally.
 ```sh
+// Test
+RUST_BACKTRACE=1 cargo unit-test
+cargo integration-test
+
+// Generate schema
+cargo schema
+
+// Compile wasm
+cargo wasm
+
+// Optimize compiled wasm
+docker run --rm -v $(pwd):/contract --mount type=volume,source=$(basename $(pwd))_cache,target=/code/target --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry enigmampc/secret-contract-optimizer
+
+// Start the docker environment with the contract:
+docker run -it --rm -p 26657:26657 -p 26656:26656 -p 1337:1337 -v $(pwd):/root/code --name secretdev enigmampc/secret-network-sw-dev
+
+// Go into the docker environment in another terminal window
+docker exec -it secretdev /bin/bash
+
+// Go into the code folder
+cd code
+
+// Store the contract template into the blockchain
 secretcli tx compute store contract.wasm.gz --from testyyyy -y --gas 1000000 --gas-prices=1.0uscrt
-secretcli tx compute instantiate $CODE_ID "$INIT" --from testyyyy --label "secret alias" -y 
+
+// Create an instance of the contract
+secretcli tx compute instantiate $CODE_ID "$INIT" --from testyyyy --label "secret alias" -y
+
+// Example of interacting with the contract
 secretcli tx compute execute $CONTRACT_INSTANCE_ADDRESS '{"create": { "alias_string": "emily" }}' --from testyyyy
 ```
