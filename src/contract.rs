@@ -56,7 +56,6 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
     env: Env,
     alias_string: String,
 ) -> StdResult<HandleResponse> {
-    let mut response_message = String::new();
     let config: Config = load(&mut deps.storage, CONFIG_KEY)?;
     let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
     if alias_string_byte_slice.len() > config.max_alias_size.into() {
@@ -70,7 +69,6 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
             human_address: sender_human_address,
         };
         alias_storage.set_alias(alias_string_byte_slice, new_alias);
-        response_message.push_str(&format!("Alias created"));
     } else {
         return Err(StdError::generic_err("Alias already exists."));
     }
@@ -87,7 +85,6 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
     env: Env,
     alias_string: String,
 ) -> StdResult<HandleResponse> {
-    let mut response_message = String::new();
     let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
     let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string);
     let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
@@ -101,7 +98,6 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::Unauthorized { backtrace: None });
     } else {
         alias_storage.remove_alias(alias_string_byte_slice);
-        response_message.push_str(&format!("Alias destroyed"));
     }
 
     Ok(HandleResponse {
@@ -113,10 +109,7 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
 
 // === QUERY ===
 
-pub fn query<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    msg: QueryMsg,
-) -> QueryResult {
+pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
     match msg {
         QueryMsg::Show { alias_string } => {
             let alias_storage = AliasReadOnlyStorage::from_storage(&deps.storage);
@@ -240,10 +233,13 @@ mod tests {
         .unwrap();
         let val: ShowResponse = from_binary(&show_response).unwrap();
         assert_eq!(human_address, val.alias.unwrap().human_address.to_string());
-        // Create alias
+        // Create same alias
         let create_alias_message = HandleMsg::Create {
-            alias_string: "asdfasf".to_string(),
+            alias_string: alias_string.to_string(),
         };
-        handle(&mut deps, env.clone(), create_alias_message).unwrap();
+        assert_eq!(
+            handle(&mut deps, env.clone(), create_alias_message).is_err(),
+            true
+        )
     }
 }

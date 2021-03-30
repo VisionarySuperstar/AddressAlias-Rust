@@ -16,15 +16,6 @@ pub struct ShowResponse {
 
 // === ENUMS ===
 
-// Response from handle functions
-#[derive(Serialize, Deserialize, Debug, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum HandleAnswer {
-    Create { message: String },
-    Destroy { message: String, alias: Alias },
-    Update { message: String, alias: Alias },
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HandleMsg {
