@@ -1,5 +1,4 @@
 use crate::msg::{HandleMsg, InitMsg, QueryMsg, ShowResponse};
-use crate::state::AliasReadOnlyStorage;
 use crate::state::{load, save, Alias, AliasStorage, Config, CONFIG_KEY};
 use cosmwasm_std::{
     to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier, QueryResult, StdError,
@@ -60,17 +59,20 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
     let mut response_message = String::new();
     let config: Config = load(&mut deps.storage, CONFIG_KEY)?;
     let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
-
     if alias_string_byte_slice.len() > config.max_alias_size.into() {
         return Err(StdError::generic_err("Alias is too long."));
-    } else {
+    }
+    let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
+    let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string);
+    if alias_object.is_none() {
         let sender_human_address = env.clone().message.sender;
-        let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
         let new_alias = Alias {
             human_address: sender_human_address,
         };
         alias_storage.set_alias(alias_string_byte_slice, new_alias);
         response_message.push_str(&format!("Alias created"));
+    } else {
+        return Err(StdError::generic_err("Alias already exists."));
     }
 
     Ok(HandleResponse {
@@ -111,17 +113,17 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
 
 // === QUERY ===
 
-pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
+pub fn query<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    msg: QueryMsg,
+) -> QueryResult {
     match msg {
         QueryMsg::Show { alias_string } => {
-            let alias_storage = AliasReadOnlyStorage::from_storage(&deps.storage);
-
+            let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
             let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string);
-
             if alias_object.is_none() {
                 return Err(StdError::generic_err("Alias does not exist."));
             }
-
             return Ok(to_binary(&ShowResponse {
                 alias: alias_object,
             })?);
