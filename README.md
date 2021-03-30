@@ -61,16 +61,15 @@ cargo schema
 cargo wasm
 // 4. Optimize compiled wasm
 docker run --rm -v $(pwd):/contract --mount type=volume,source=$(basename $(pwd))_cache,target=/code/target --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry enigmampc/secret-contract-optimizer
-// 5. Start the docker environment with the contract:
-docker run -it --rm -p 26657:26657 -p 26656:26656 -p 1337:1337 -v $(pwd):/root/code --name secretdev enigmampc/secret-network-sw-dev
-// 6. Go into the docker environment in another terminal window
-docker exec -it secretdev /bin/bash
-// 7. Go into the code folder
-cd code
-// 8. Store the contract template into the blockchain
+// 5. Store the contract template into the blockchain
 secretcli tx compute store contract.wasm.gz --from testyyyy -y --gas 1000000 --gas-prices=1.0uscrt
-// 9. Create an instance of the contract
+// 6. Get the contract's id
+secretcli query compute list-code
+// 7. Store desired contract id into variable
+CODE_ID=1
+// 8. Create an instance of the contract
+INIT='{"max_alias_size": 99}'
 secretcli tx compute instantiate $CODE_ID "$INIT" --from testyyyy --label "secret alias" -y
-// 10. Example of interacting with the contract
+// 9. Example of interacting with the contract
 secretcli tx compute execute $CONTRACT_INSTANCE_ADDRESS '{"create": { "alias_string": "emily" }}' --from testyyyy
 ```
