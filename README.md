@@ -70,6 +70,10 @@ CODE_ID=1
 // 8. Create an instance of the contract
 INIT='{"max_alias_size": 99}'
 secretcli tx compute instantiate $CODE_ID "$INIT" --from testyyyy --label "secret alias" -y
-// 9. Example of interacting with the contract
+// 9. Check instance creation
+secretcli query compute list-contract-by-code $CODE_ID
+// 10. Store desired contract instance address into a variable
+CONTRACT_INSTANCE_ADDRESS=secret1zdh7d9gg82pt6uh3yp3ewdu990mjfva8ceyes9
+// 10. Example of interacting with the contract
 secretcli tx compute execute $CONTRACT_INSTANCE_ADDRESS '{"create": { "alias_string": "emily" }}' --from testyyyy
 ```
