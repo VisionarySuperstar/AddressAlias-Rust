@@ -1,5 +1,5 @@
 use cosmwasm_std::{HumanAddr, ReadonlyStorage, StdError, StdResult, Storage};
-use cosmwasm_storage::PrefixedStorage;
+use cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage};
 use schemars::JsonSchema;
 use secret_toolkit::serialization::{Bincode2, Serde};
 use serde::de::DeserializeOwned;
@@ -19,6 +19,23 @@ pub struct Alias {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {
     pub max_alias_size: u16,
+}
+
+// Need this here as query only accepts an &Extern as an argument
+pub struct AliasReadOnlyStorage<'a, S: Storage> {
+    storage: ReadonlyPrefixedStorage<'a, S>,
+}
+impl<'a, S: Storage> AliasReadOnlyStorage<'a, S> {
+    pub fn from_storage(storage: &'a S) -> Self {
+        Self {
+            storage: ReadonlyPrefixedStorage::new(ALIAS_PREFIX, storage),
+        }
+    }
+
+    pub fn get_alias(&self, key: &String) -> Option<Alias> {
+        let alias: Option<Alias> = may_load(&self.storage, &key.as_bytes()).ok().unwrap();
+        alias
+    }
 }
 
 pub struct AliasStorage<'a, S: Storage> {
@@ -50,6 +67,8 @@ impl<'a, S: Storage> AliasStorage<'a, S> {
     }
 }
 
+// Tried to redirect as_readonly to AliasReadOnlyStorage but couldn't get it to work
+// Leave this here for the meanwhile
 struct ReadonlyAliasStorageImpl<'a, S: ReadonlyStorage>(&'a S);
 impl<'a, S: ReadonlyStorage> ReadonlyAliasStorageImpl<'a, S> {
     pub fn get(&self, key: &String) -> Option<Alias> {
