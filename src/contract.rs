@@ -1,4 +1,4 @@
-use crate::msg::ResponseStatus::{Failure, Success};
+use crate::msg::ResponseStatus::Success;
 use crate::msg::{HandleAnswer, HandleMsg, InitMsg, QueryMsg, ResponseStatus, ShowResponse};
 use crate::state::AliasReadOnlyStorage;
 use crate::state::{load, save, Alias, AliasStorage, Config, CONFIG_KEY};
@@ -72,8 +72,7 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
     let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
 
     if alias_string_byte_slice.len() > config.max_alias_size.into() {
-        status = Failure;
-        response_message.push_str(&format!("Alias is too long."));
+        return Err(StdError::generic_err("Alias is too long."));
     } else {
         let sender_human_address = env.clone().message.sender;
         let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
