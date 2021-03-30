@@ -20,20 +20,9 @@ pub struct ShowResponse {
 #[derive(Serialize, Deserialize, Debug, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HandleAnswer {
-    Create {
-        status: ResponseStatus,
-        message: String,
-    },
-    Destroy {
-        status: ResponseStatus,
-        message: String,
-        alias: Alias,
-    },
-    Update {
-        status: ResponseStatus,
-        message: String,
-        alias: Alias,
-    },
+    Create { message: String },
+    Destroy { message: String, alias: Alias },
+    Update { message: String, alias: Alias },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -47,11 +36,4 @@ pub enum HandleMsg {
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     Show { alias_string: String },
-}
-
-// success or failure response
-#[derive(Serialize, Deserialize, Debug, JsonSchema)]
-pub enum ResponseStatus {
-    Success,
-    Failure,
 }

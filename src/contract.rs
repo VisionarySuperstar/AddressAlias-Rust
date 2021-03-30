@@ -1,5 +1,4 @@
-use crate::msg::ResponseStatus::Success;
-use crate::msg::{HandleAnswer, HandleMsg, InitMsg, QueryMsg, ResponseStatus, ShowResponse};
+use crate::msg::{HandleMsg, InitMsg, QueryMsg, ShowResponse};
 use crate::state::AliasReadOnlyStorage;
 use crate::state::{load, save, Alias, AliasStorage, Config, CONFIG_KEY};
 use cosmwasm_std::{
@@ -14,7 +13,8 @@ use std::convert::TryFrom;
 // leaking info based on response size
 pub const BLOCK_SIZE: usize = 256;
 
-// === FUNCTIONS ===
+// === INIT ===
+
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     _env: Env,
@@ -30,6 +30,16 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     Ok(InitResponse::default())
 }
 
+fn valid_alias_size(val: i32) -> Option<u16> {
+    if val < 1 {
+        None
+    } else {
+        u16::try_from(val).ok()
+    }
+}
+
+// === HANDLE ===
+
 pub fn handle<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -41,6 +51,65 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     };
     pad_handle_result(response, BLOCK_SIZE)
 }
+
+fn try_create<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    alias_string: String,
+) -> StdResult<HandleResponse> {
+    let mut response_message = String::new();
+    let config: Config = load(&mut deps.storage, CONFIG_KEY)?;
+    let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
+
+    if alias_string_byte_slice.len() > config.max_alias_size.into() {
+        return Err(StdError::generic_err("Alias is too long."));
+    } else {
+        let sender_human_address = env.clone().message.sender;
+        let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
+        let new_alias = Alias {
+            human_address: sender_human_address,
+        };
+        alias_storage.set_alias(alias_string_byte_slice, new_alias);
+        response_message.push_str(&format!("Alias created"));
+    }
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![],
+        data: None,
+    })
+}
+
+fn try_destroy<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    alias_string: String,
+) -> StdResult<HandleResponse> {
+    let mut response_message = String::new();
+    let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
+    let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string);
+    let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
+    let sender_human_address = env.clone().message.sender;
+
+    if alias_object.is_none() {
+        return Err(StdError::generic_err("Alias does not exist."));
+    }
+    let alias_object: Alias = alias_object.unwrap();
+    if sender_human_address != alias_object.human_address {
+        return Err(StdError::Unauthorized { backtrace: None });
+    } else {
+        alias_storage.remove_alias(alias_string_byte_slice);
+        response_message.push_str(&format!("Alias destroyed"));
+    }
+
+    Ok(HandleResponse {
+        messages: vec![],
+        log: vec![],
+        data: None,
+    })
+}
+
+// === QUERY ===
 
 pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
     match msg {
@@ -60,81 +129,9 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
     }
 }
 
-// === PRIVATE ===
-fn try_create<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    alias_string: String,
-) -> StdResult<HandleResponse> {
-    let status: ResponseStatus;
-    let mut response_message = String::new();
-    let config: Config = load(&mut deps.storage, CONFIG_KEY)?;
-    let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
-
-    if alias_string_byte_slice.len() > config.max_alias_size.into() {
-        return Err(StdError::generic_err("Alias is too long."));
-    } else {
-        let sender_human_address = env.clone().message.sender;
-        let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
-        let new_alias = Alias {
-            human_address: sender_human_address,
-        };
-        alias_storage.set_alias(alias_string_byte_slice, new_alias);
-        status = Success;
-        response_message.push_str(&format!("Alias created"));
-    }
-
-    Ok(HandleResponse {
-        messages: vec![],
-        log: vec![],
-        data: Some(to_binary(&HandleAnswer::Create {
-            status,
-            message: response_message,
-        })?),
-    })
-}
-
-fn try_destroy<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    alias_string: String,
-) -> StdResult<HandleResponse> {
-    let status: ResponseStatus;
-    let mut response_message = String::new();
-    let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
-    let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string);
-    let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
-    let sender_human_address = env.clone().message.sender;
-
-    if alias_object.is_none() {
-        return Err(StdError::generic_err("Alias does not exist."));
-    }
-    let alias_object: Alias = alias_object.unwrap();
-    if sender_human_address != alias_object.human_address {
-        return Err(StdError::Unauthorized { backtrace: None });
-    } else {
-        alias_storage.remove_alias(alias_string_byte_slice);
-        status = Success;
-        response_message.push_str(&format!("Alias destroyed"));
-    }
-
-    Ok(HandleResponse {
-        messages: vec![],
-        log: vec![],
-        data: Some(to_binary(&HandleAnswer::Create {
-            status,
-            message: response_message,
-        })?),
-    })
-}
-
-fn valid_alias_size(val: i32) -> Option<u16> {
-    if val < 1 {
-        None
-    } else {
-        u16::try_from(val).ok()
-    }
-}
+///////////////////////////////////////////////////////////////////////
+//////////////////////////////// Tests ////////////////////////////////
+///////////////////////////////////////////////////////////////////////
 
 #[cfg(test)]
 mod tests {
