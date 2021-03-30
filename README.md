@@ -109,4 +109,4 @@ secretcli tx compute execute $CONTRACT_INSTANCE_ADDRESS '{"create": { "alias_str
 ```
 
 ## References
-1. [Secret contracts guide](https://github.com/enigmampc/secret-contracts-guide): https://github.com/enigmampc/secret-contracts-guide
+1. Secret contracts guide: https://github.com/enigmampc/secret-contracts-guide
