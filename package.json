@@ -1,0 +1,29 @@
+{
+  "name": "secret-alias",
+  "version": "1.0.0",
+  "description": "Contract for anyone to create an alias for their secret network wallet address. e.g. 'batman': \"secret12345678901234567890\"",
+  "main": "connect.js",
+  "directories": {
+    "example": "examples",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Steven-Chang/secret-alias.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Steven-Chang/secret-alias/issues"
+  },
+  "homepage": "https://github.com/Steven-Chang/secret-alias#readme",
+  "dependencies": {
+    "@iov/crypto": "^2.5.0",
+    "dotenv": "^8.2.0",
+    "secretjs": "^0.11.0"
+  }
+}

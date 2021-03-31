@@ -13,3 +13,9 @@
 # IDEs
 *.iml
 .idea
+
+# Datahub figment
+.env
+
+# Node modules
+/node_modules
