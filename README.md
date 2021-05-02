@@ -45,7 +45,7 @@ docker run --rm -v $(pwd):/contract --mount type=volume,source=$(basename $(pwd)
 
 ```sh
 // 1. Setup local docker container to run devleopment blockchain
-docker run --rm -v $(pwd):/contract --mount type=volume,source=$(basename $(pwd))_cache,target=/code/target --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry enigmampc/secret-contract-optimizer
+docker run -it --rm -p 26657:26657 -p 26656:26656 -p 1337:1337 -v $(pwd):/root/code --name secretdev enigmampc/secret-network-sw-dev
 
 // 2. Access container via separate terminal window
 docker exec -it secretdev /bin/bash
