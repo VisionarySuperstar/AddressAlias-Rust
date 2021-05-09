@@ -1,4 +1,4 @@
-# Secret Alias
+# Secret Alias - WORK IN PROGRESS
 
 Contract for anyone to create an alias for their secret network wallet address.
 e.g. 'batman': "secret12345678901234567890"
