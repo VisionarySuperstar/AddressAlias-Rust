@@ -19,12 +19,12 @@ pub struct ShowResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HandleMsg {
-    Create { alias_string: String },
-    Destroy { alias_string: String },
+    Create { alias: String },
+    Destroy { alias: String },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-    Show { alias_string: String },
+    Show { alias: String },
 }

@@ -45,8 +45,8 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
     let response = match msg {
-        HandleMsg::Create { alias_string } => try_create(deps, env, alias_string),
-        HandleMsg::Destroy { alias_string } => try_destroy(deps, env, alias_string),
+        HandleMsg::Create { alias } => try_create(deps, env, alias),
+        HandleMsg::Destroy { alias } => try_destroy(deps, env, alias),
     };
     pad_handle_result(response, BLOCK_SIZE)
 }
@@ -111,10 +111,10 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
 
 pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
     match msg {
-        QueryMsg::Show { alias_string } => {
+        QueryMsg::Show { alias } => {
             let alias_storage = AliasReadOnlyStorage::from_storage(&deps.storage);
 
-            let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string);
+            let alias_object: Option<Alias> = alias_storage.get_alias(&alias);
             if alias_object.is_none() {
                 return Err(StdError::generic_err("Alias does not exist."));
             }
@@ -150,7 +150,7 @@ mod tests {
 
     #[test]
     fn test_try_destroy() {
-        let alias_string: &str = "nailbiter";
+        let alias: &str = "nailbiter";
         let human_address = "why";
         let mut deps = mock_dependencies(20, &coins(2, "token"));
         let msg = InitMsg {
@@ -163,14 +163,14 @@ mod tests {
         init(&mut deps, env.clone(), msg).unwrap();
         // Create alias
         let create_alias_message = HandleMsg::Create {
-            alias_string: alias_string.to_string(),
+            alias: alias.to_string(),
         };
         handle(&mut deps, env.clone(), create_alias_message).unwrap();
         // Query alias
         let show_response = query(
             &mut deps,
             QueryMsg::Show {
-                alias_string: alias_string.to_string(),
+                alias: alias.to_string(),
             },
         )
         .unwrap();
@@ -181,26 +181,26 @@ mod tests {
         );
         // Try deleting an alias that does not exist
         let destroy_alias_message = HandleMsg::Destroy {
-            alias_string: "idonotexist".to_string(),
+            alias: "idonotexist".to_string(),
         };
         let res = handle(&mut deps, env.clone(), destroy_alias_message);
         assert_eq!(res.is_err(), true);
         // Try deleting an alias with a different user
         let destroy_alias_message = HandleMsg::Destroy {
-            alias_string: alias_string.to_string(),
+            alias: alias.to_string(),
         };
         let res = handle(&mut deps, env_two, destroy_alias_message);
         assert_eq!(res.is_err(), true);
         // Destroy alias
         let destroy_alias_message = HandleMsg::Destroy {
-            alias_string: alias_string.to_string(),
+            alias: alias.to_string(),
         };
         handle(&mut deps, env.clone(), destroy_alias_message).unwrap();
         // Query destroyed alias
         let query_response = query(
             &mut deps,
             QueryMsg::Show {
-                alias_string: alias_string.to_string(),
+                alias: alias.to_string(),
             },
         );
         assert_eq!(query_response.is_err(), true);
@@ -208,7 +208,7 @@ mod tests {
 
     #[test]
     fn test_try_create() {
-        let alias_string: &str = "nailbiter";
+        let alias: &str = "nailbiter";
         let mut deps = mock_dependencies(20, &coins(2, "token"));
         let human_address = "huma";
         let env = mock_env(human_address, &coins(2, "token"));
@@ -220,14 +220,14 @@ mod tests {
         init(&mut deps, env.clone(), msg).unwrap();
         // Create alias
         let create_alias_message = HandleMsg::Create {
-            alias_string: alias_string.to_string(),
+            alias: alias.to_string(),
         };
         handle(&mut deps, env.clone(), create_alias_message).unwrap();
         // Query alias
         let show_response = query(
             &mut deps,
             QueryMsg::Show {
-                alias_string: alias_string.to_string(),
+                alias: alias.to_string(),
             },
         )
         .unwrap();
@@ -235,7 +235,7 @@ mod tests {
         assert_eq!(human_address, val.alias.unwrap().human_address.to_string());
         // Create same alias
         let create_alias_message = HandleMsg::Create {
-            alias_string: alias_string.to_string(),
+            alias: alias.to_string(),
         };
         assert_eq!(
             handle(&mut deps, env.clone(), create_alias_message).is_err(),
