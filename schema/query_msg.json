@@ -11,10 +11,10 @@
         "show": {
           "type": "object",
           "required": [
-            "alias_string"
+            "alias"
           ],
           "properties": {
-            "alias_string": {
+            "alias": {
               "type": "string"
             }
           }
