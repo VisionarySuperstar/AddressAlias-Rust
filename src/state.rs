@@ -33,8 +33,13 @@ impl<'a, S: Storage> AliasReadOnlyStorage<'a, S> {
     }
 
     pub fn get_alias(&self, key: &String) -> Option<Alias> {
-        let alias: Option<Alias> = may_load(&self.storage, &key.as_bytes()).ok().unwrap();
-        alias
+        self.as_readonly().get(key)
+    }
+
+    // private
+
+    fn as_readonly(&self) -> ReadonlyAliasStorageImpl<ReadonlyPrefixedStorage<S>> {
+        ReadonlyAliasStorageImpl(&self.storage)
     }
 }
 
@@ -78,7 +83,6 @@ impl<'a, S: ReadonlyStorage> ReadonlyAliasStorageImpl<'a, S> {
 }
 
 // === FUNCTIONS ===
-
 pub fn load<T: DeserializeOwned, S: ReadonlyStorage>(storage: &S, key: &[u8]) -> StdResult<T> {
     Bincode2::deserialize(
         &storage
@@ -87,7 +91,7 @@ pub fn load<T: DeserializeOwned, S: ReadonlyStorage>(storage: &S, key: &[u8]) ->
     )
 }
 
-pub fn may_load<T: DeserializeOwned, S: ReadonlyStorage>(
+fn may_load<T: DeserializeOwned, S: ReadonlyStorage>(
     storage: &S,
     key: &[u8],
 ) -> StdResult<Option<T>> {
