@@ -8,17 +8,11 @@ use std::any::type_name;
 
 // === STATICS ===
 pub static ALIAS_PREFIX: &[u8] = b"alias";
-pub static CONFIG_KEY: &[u8] = b"config";
 
 // === STRUCTS ===
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Alias {
     pub human_address: HumanAddr,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct Config {
-    pub max_alias_size: u16,
 }
 
 // Need this here as query only accepts an &Extern as an argument
