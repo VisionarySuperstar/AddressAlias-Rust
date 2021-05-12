@@ -57,6 +57,7 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
     alias_string: String,
 ) -> StdResult<HandleResponse> {
     let config: Config = load(&mut deps.storage, CONFIG_KEY)?;
+    let alias_string = alias_string.trim().to_string();
     let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
     if alias_string_byte_slice.len() > config.max_alias_size.into() {
         return Err(StdError::generic_err("Alias is too long."));
@@ -208,7 +209,7 @@ mod tests {
 
     #[test]
     fn test_try_create() {
-        let alias: &str = "nailbiter";
+        let alias: &str = "   nail biter    ";
         let mut deps = mock_dependencies(20, &coins(2, "token"));
         let human_address = "huma";
         let env = mock_env(human_address, &coins(2, "token"));
@@ -218,21 +219,24 @@ mod tests {
 
         // Initialize contract instance
         init(&mut deps, env.clone(), msg).unwrap();
+
         // Create alias
         let create_alias_message = HandleMsg::Create {
             alias: alias.to_string(),
         };
         handle(&mut deps, env.clone(), create_alias_message).unwrap();
-        // Query alias
+
+        // Query alias but with trailing and leading whitespaces
         let show_response = query(
             &mut deps,
             QueryMsg::Show {
-                alias: alias.to_string(),
+                alias: "nail biter".to_string(),
             },
         )
         .unwrap();
         let val: ShowResponse = from_binary(&show_response).unwrap();
         assert_eq!(human_address, val.alias.unwrap().human_address.to_string());
+
         // Create same alias
         let create_alias_message = HandleMsg::Create {
             alias: alias.to_string(),
