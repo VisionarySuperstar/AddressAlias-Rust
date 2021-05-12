@@ -21,6 +21,12 @@
         "human_address"
       ],
       "properties": {
+        "avatar_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "human_address": {
           "$ref": "#/definitions/HumanAddr"
         }

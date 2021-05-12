@@ -16,6 +16,12 @@
           "properties": {
             "alias": {
               "type": "string"
+            },
+            "avatar_url": {
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         }

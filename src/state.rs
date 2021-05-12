@@ -13,6 +13,7 @@ pub static ALIAS_PREFIX: &[u8] = b"alias";
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Alias {
     pub human_address: HumanAddr,
+    pub avatar_url: Option<String>,
 }
 
 // Need this here as query only accepts an &Extern as an argument

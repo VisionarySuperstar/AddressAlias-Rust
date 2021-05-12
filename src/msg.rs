@@ -15,8 +15,13 @@ pub struct ShowResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HandleMsg {
-    Create { alias: String },
-    Destroy { alias: String },
+    Create {
+        alias: String,
+        avatar_url: Option<String>,
+    },
+    Destroy {
+        alias: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
