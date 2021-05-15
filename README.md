@@ -1,24 +1,31 @@
-# Secret Alias - WORK IN PROGRESS
+# Address Alias - WORK IN PROGRESS
 
-Contract for anyone to create an alias for their secret network wallet address.
-e.g. 'batman': "secret12345678901234567890"
+Create an alias for your address. Search an address by alias. Search an alias by address.
+"batman" => "secret12345678901234567890"
+"secret12345678901234567890" => "batman"
 
 ## Concept / Why
 
-Requesting payment requires opening your wallet, copying your address and sending it to the sender. By letting someone get your wallet address via an alias, it provides a fun, convenient alternative that reduces the chance for human error.
+- Easy way to find and share addresses.
+- Easy way to let people know the purpose of an address. e.g. "btn.group - admin 1"
 
 ### Use case examples:
 
-1. Standalone website 
+1. Finding and sharing an address through btn.group's site
 - Batman asks Bane to send him 3 scrt tokens.
-- Batman tells Bane that he can grab his wallet address from somewebsite.com by searching for 'thedarkknight'.
+- Batman tells Bane that he can grab his wallet address from btn.group[https://www.btn.group/secret_network/address_alias] by searching for 'thedarkknight'.
 - Bane goes to website, searches for 'thedarkknight' and retrieves the wallet address.
 
-2. Via dapp
+2. Finding and sharing an address via a third party app
 - Bane asks the league of shadows to send him 333 tokens.
-- The league of shadows is using somewallet which has incorporated this contract.
-- Bane tells Ra's al Ghul that his alias is 'breakyou'.
-- The league of shadows enters the alias into somewallet and it auto fills the wallet adddress to send to.
+- The league of shadows is using an app which has incorporated this contract.
+- Bane tells the league of shadows that his alias is 'breakyou'.
+- The league of shadows enters the alias into the app and it auto fills the wallet adddress to send to.
+
+3. Easier auditing
+- Robin wants to audit an instance of a smart contract before investing.
+- Robin sees a few different addresses interacting with it.
+- He looks up an address in a flash and gets a better picture of what's going on.
 
 ## Code examples
 
