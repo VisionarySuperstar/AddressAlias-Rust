@@ -1,25 +1,21 @@
-use cosmwasm_std::{HumanAddr, ReadonlyStorage, StdError, StdResult, Storage};
+use cosmwasm_std::{HumanAddr, ReadonlyStorage, StdResult, Storage};
 use cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage};
-use schemars::JsonSchema;
 use secret_toolkit::serialization::{Bincode2, Serde};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use std::any::type_name;
 
 // === CONSTANTS ===
 pub const ADDRESSES_ALIASES_PREFIX: &[u8] = b"addresses_aliases";
 pub const ALIASES_PREFIX: &[u8] = b"aliases";
 
 // === STRUCTS ===
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Alias {
     pub human_address: HumanAddr,
     pub avatar_url: Option<String>,
 }
 
-// === STORAGE ===
-
-// === Aliases ===
+// === Aliases Storage ===
 pub struct AliasesReadonlyStorage<'a, S: Storage> {
     storage: ReadonlyPrefixedStorage<'a, S>,
 }
@@ -78,7 +74,7 @@ impl<'a, S: ReadonlyStorage> ReadonlyAliasesStorageImpl<'a, S> {
     }
 }
 
-// === AddressesAliases ===
+// === AddressesAliases Storage ===
 
 pub struct AddressesAliasesReadonlyStorage<'a, S: Storage> {
     storage: ReadonlyPrefixedStorage<'a, S>,
@@ -139,14 +135,6 @@ impl<'a, S: ReadonlyStorage> ReadonlyAddressesAliasesStorageImpl<'a, S> {
 }
 
 // === FUNCTIONS ===
-pub fn load<T: DeserializeOwned, S: ReadonlyStorage>(storage: &S, key: &[u8]) -> StdResult<T> {
-    Bincode2::deserialize(
-        &storage
-            .get(key)
-            .ok_or_else(|| StdError::not_found(type_name::<T>()))?,
-    )
-}
-
 fn may_load<T: DeserializeOwned, S: ReadonlyStorage>(
     storage: &S,
     key: &[u8],
@@ -157,22 +145,11 @@ fn may_load<T: DeserializeOwned, S: ReadonlyStorage>(
     }
 }
 
-/// Removes an item from storage
-///
-/// # Arguments
-///
-/// * `storage` - a mutable reference to the storage this item is in
-/// * `key` - a byte slice representing the key that accesses the stored item
-pub fn remove<S: Storage>(storage: &mut S, key: &[u8]) {
+fn remove<S: Storage>(storage: &mut S, key: &[u8]) {
     storage.remove(key);
 }
 
-// Returns StdResult<()> resulting from saving an item to storage
-// Arguments:
-// storage - a mutable reference to the storage this item should go to
-// key - a byte slice representing the key to access the stored item
-// value - a reference to the item to store
-pub fn save<T: Serialize, S: Storage>(storage: &mut S, key: &[u8], value: &T) -> StdResult<()> {
+fn save<T: Serialize, S: Storage>(storage: &mut S, key: &[u8], value: &T) -> StdResult<()> {
     storage.set(key, &Bincode2::serialize(value)?);
     Ok(())
 }

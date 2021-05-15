@@ -84,7 +84,7 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
     let sender_human_address = env.clone().message.sender;
 
     if alias_object.is_none() {
-        return Err(StdError::generic_err("Alias does not exist."));
+        return Err(StdError::not_found("Alias"));
     }
     let alias_object: Alias = alias_object.unwrap();
     if sender_human_address != alias_object.human_address {
@@ -115,14 +115,14 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
                     AddressesAliasesReadonlyStorage::from_storage(&deps.storage);
                 let alias_key = addresses_aliases_storage.get_alias(&search_value);
                 if alias_key.is_none() {
-                    return Err(StdError::generic_err("Alias does not exist."));
+                    return Err(StdError::not_found("Alias"));
                 }
                 let alias_storage = AliasesReadonlyStorage::from_storage(&deps.storage);
                 let alias_string =
                     String::from_utf8(alias_key.clone().unwrap()).expect("Found invalid UTF-8");
                 alias_object = alias_storage.get_alias(&alias_key.unwrap());
                 if alias_object.is_none() {
-                    return Err(StdError::generic_err("Alias does not exist."));
+                    return Err(StdError::not_found("Alias"));
                 }
                 alias_attributes = AliasAttributes {
                     alias: alias_string,
@@ -133,7 +133,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
                 let alias_storage = AliasesReadonlyStorage::from_storage(&deps.storage);
                 alias_object = alias_storage.get_alias(&search_value.as_bytes());
                 if alias_object.is_none() {
-                    return Err(StdError::generic_err("Alias does not exist."));
+                    return Err(StdError::not_found("Alias"));
                 }
                 alias_attributes = AliasAttributes {
                     alias: search_value,
