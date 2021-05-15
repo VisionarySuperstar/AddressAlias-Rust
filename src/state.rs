@@ -6,8 +6,9 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::any::type_name;
 
-// === STATICS ===
-pub static ALIAS_PREFIX: &[u8] = b"alias";
+// === CONSTANTS ===
+pub const ADDRESSES_ALIASES_PREFIX: &[u8] = b"addresses_aliases";
+pub const ALIASES_PREFIX: &[u8] = b"aliases";
 
 // === STRUCTS ===
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -16,14 +17,16 @@ pub struct Alias {
     pub avatar_url: Option<String>,
 }
 
-// Need this here as query only accepts an &Extern as an argument
-pub struct AliasReadOnlyStorage<'a, S: Storage> {
+// === STORAGE ===
+
+// === Aliases ===
+pub struct AliasesReadonlyStorage<'a, S: Storage> {
     storage: ReadonlyPrefixedStorage<'a, S>,
 }
-impl<'a, S: Storage> AliasReadOnlyStorage<'a, S> {
+impl<'a, S: Storage> AliasesReadonlyStorage<'a, S> {
     pub fn from_storage(storage: &'a S) -> Self {
         Self {
-            storage: ReadonlyPrefixedStorage::new(ALIAS_PREFIX, storage),
+            storage: ReadonlyPrefixedStorage::new(ALIASES_PREFIX, storage),
         }
     }
 
@@ -33,18 +36,18 @@ impl<'a, S: Storage> AliasReadOnlyStorage<'a, S> {
 
     // private
 
-    fn as_readonly(&self) -> ReadonlyAliasStorageImpl<ReadonlyPrefixedStorage<S>> {
-        ReadonlyAliasStorageImpl(&self.storage)
+    fn as_readonly(&self) -> ReadonlyAliasesStorageImpl<ReadonlyPrefixedStorage<S>> {
+        ReadonlyAliasesStorageImpl(&self.storage)
     }
 }
 
-pub struct AliasStorage<'a, S: Storage> {
+pub struct AliasesStorage<'a, S: Storage> {
     storage: PrefixedStorage<'a, S>,
 }
-impl<'a, S: Storage> AliasStorage<'a, S> {
+impl<'a, S: Storage> AliasesStorage<'a, S> {
     pub fn from_storage(storage: &'a mut S) -> Self {
         Self {
-            storage: PrefixedStorage::new(ALIAS_PREFIX, storage),
+            storage: PrefixedStorage::new(ALIASES_PREFIX, storage),
         }
     }
 
@@ -62,17 +65,75 @@ impl<'a, S: Storage> AliasStorage<'a, S> {
 
     // private
 
-    fn as_readonly(&self) -> ReadonlyAliasStorageImpl<PrefixedStorage<S>> {
-        ReadonlyAliasStorageImpl(&self.storage)
+    fn as_readonly(&self) -> ReadonlyAliasesStorageImpl<PrefixedStorage<S>> {
+        ReadonlyAliasesStorageImpl(&self.storage)
     }
 }
 
-// Tried to redirect as_readonly to AliasReadOnlyStorage but couldn't get it to work
-// Leave this here for the meanwhile
-struct ReadonlyAliasStorageImpl<'a, S: ReadonlyStorage>(&'a S);
-impl<'a, S: ReadonlyStorage> ReadonlyAliasStorageImpl<'a, S> {
+struct ReadonlyAliasesStorageImpl<'a, S: ReadonlyStorage>(&'a S);
+impl<'a, S: ReadonlyStorage> ReadonlyAliasesStorageImpl<'a, S> {
     pub fn get(&self, key: &String) -> Option<Alias> {
         let alias: Option<Alias> = may_load(self.0, &key.as_bytes()).ok().unwrap();
+        alias
+    }
+}
+
+// === AddressesAliases ===
+
+pub struct AddressesAliasesReadonlyStorage<'a, S: Storage> {
+    storage: ReadonlyPrefixedStorage<'a, S>,
+}
+impl<'a, S: Storage> AddressesAliasesReadonlyStorage<'a, S> {
+    pub fn from_storage(storage: &'a S) -> Self {
+        Self {
+            storage: ReadonlyPrefixedStorage::new(ADDRESSES_ALIASES_PREFIX, storage),
+        }
+    }
+
+    pub fn get_alias(&self, key: &String) -> Option<Vec<u8>> {
+        self.as_readonly().get(key)
+    }
+
+    // private
+
+    fn as_readonly(&self) -> ReadonlyAddressAliasesStorageImpl<ReadonlyPrefixedStorage<S>> {
+        ReadonlyAddressAliasesStorageImpl(&self.storage)
+    }
+}
+
+pub struct AddressesAliasesStorage<'a, S: Storage> {
+    storage: PrefixedStorage<'a, S>,
+}
+impl<'a, S: Storage> AddressesAliasesStorage<'a, S> {
+    pub fn from_storage(storage: &'a mut S) -> Self {
+        Self {
+            storage: PrefixedStorage::new(ADDRESSES_ALIASES_PREFIX, storage),
+        }
+    }
+
+    pub fn get_alias(&mut self, key: &String) -> Option<Vec<u8>> {
+        self.as_readonly().get(key)
+    }
+
+    pub fn remove_alias(&mut self, key: &[u8]) {
+        remove(&mut self.storage, &key);
+    }
+
+    pub fn set_alias(&mut self, key: &[u8], value: &String) {
+        save(&mut self.storage, key, value).ok();
+    }
+
+    // private
+
+    fn as_readonly(&self) -> ReadonlyAddressAliasesStorageImpl<PrefixedStorage<S>> {
+        ReadonlyAddressAliasesStorageImpl(&self.storage)
+    }
+}
+
+struct ReadonlyAddressAliasesStorageImpl<'a, S: ReadonlyStorage>(&'a S);
+impl<'a, S: ReadonlyStorage> ReadonlyAddressAliasesStorageImpl<'a, S> {
+    pub fn get(&self, key: &String) -> Option<Vec<u8>> {
+        let alias: Option<Vec<u8>> = may_load(self.0, &key.as_bytes()).ok().unwrap();
         alias
     }
 }

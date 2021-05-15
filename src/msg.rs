@@ -1,13 +1,20 @@
-use crate::state::Alias;
+use cosmwasm_std::HumanAddr;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 // === STRUCTS ===
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct AliasAttributes {
+    pub alias: String,
+    pub avatar_url: Option<String>,
+    pub address: HumanAddr,
+}
 
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct ShowResponse {
-    pub alias: Option<Alias>,
+pub struct SearchResponse {
+    pub r#type: String,
+    pub attributes: AliasAttributes,
 }
 
 // === ENUMS ===
@@ -27,5 +34,8 @@ pub enum HandleMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-    Show { alias: String },
+    Search {
+        search_type: String,
+        search_value: String,
+    },
 }

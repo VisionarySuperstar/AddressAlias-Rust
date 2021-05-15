@@ -5,16 +5,20 @@
     {
       "type": "object",
       "required": [
-        "show"
+        "search"
       ],
       "properties": {
-        "show": {
+        "search": {
           "type": "object",
           "required": [
-            "alias"
+            "search_type",
+            "search_value"
           ],
           "properties": {
-            "alias": {
+            "search_type": {
+              "type": "string"
+            },
+            "search_value": {
               "type": "string"
             }
           }

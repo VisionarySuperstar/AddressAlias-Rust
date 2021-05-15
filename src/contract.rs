@@ -1,5 +1,8 @@
-use crate::msg::{HandleMsg, QueryMsg, ShowResponse};
-use crate::state::{Alias, AliasReadOnlyStorage, AliasStorage};
+use crate::msg::AliasAttributes;
+use crate::msg::{HandleMsg, QueryMsg, SearchResponse};
+use crate::state::{
+    AddressesAliasesReadonlyStorage, Alias, AliasesReadonlyStorage, AliasesStorage,
+};
 use cosmwasm_std::{
     to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier, QueryResult, StdError,
     StdResult, Storage,
@@ -43,7 +46,7 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
     if alias_string_byte_slice.len() > u16::MAX.into() {
         return Err(StdError::generic_err("Alias is too long."));
     }
-    let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
+    let mut alias_storage = AliasesStorage::from_storage(&mut deps.storage);
     let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string);
     if alias_object.is_none() {
         let sender_human_address = env.clone().message.sender;
@@ -68,7 +71,7 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
     env: Env,
     alias_string: String,
 ) -> StdResult<HandleResponse> {
-    let mut alias_storage = AliasStorage::from_storage(&mut deps.storage);
+    let mut alias_storage = AliasesStorage::from_storage(&mut deps.storage);
     let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string);
     let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
     let sender_human_address = env.clone().message.sender;
@@ -94,15 +97,50 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
 
 pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
     match msg {
-        QueryMsg::Show { alias } => {
-            let alias_storage = AliasReadOnlyStorage::from_storage(&deps.storage);
-
-            let alias_object: Option<Alias> = alias_storage.get_alias(&alias);
-            if alias_object.is_none() {
-                return Err(StdError::generic_err("Alias does not exist."));
+        QueryMsg::Search {
+            search_type,
+            search_value,
+        } => {
+            let alias_object: Option<Alias>;
+            let alias_attributes: AliasAttributes;
+            if search_type == "address" {
+                let addresses_aliases_storage =
+                    AddressesAliasesReadonlyStorage::from_storage(&deps.storage);
+                let alias_key = addresses_aliases_storage.get_alias(&search_value);
+                if alias_key.is_none() {
+                    return Err(StdError::generic_err("Alias does not exist."));
+                }
+                let alias_storage = AliasesReadonlyStorage::from_storage(&deps.storage);
+                alias_object = alias_storage.get_alias(&search_value);
+                if alias_object.is_none() {
+                    return Err(StdError::generic_err("Alias does not exist."));
+                }
+                alias_attributes = AliasAttributes {
+                    alias: search_value,
+                    avatar_url: alias_object.clone().unwrap().avatar_url,
+                    address: alias_object.unwrap().human_address,
+                };
+            } else if search_type == "alias" {
+                let alias_storage = AliasesReadonlyStorage::from_storage(&deps.storage);
+                alias_object = alias_storage.get_alias(&search_value);
+                if alias_object.is_none() {
+                    return Err(StdError::generic_err("Alias does not exist."));
+                }
+                alias_attributes = AliasAttributes {
+                    alias: search_value,
+                    avatar_url: alias_object.clone().unwrap().avatar_url,
+                    address: alias_object.unwrap().human_address,
+                };
+            } else {
+                return Err(StdError::parse_err(
+                    "search_type",
+                    "must be address or alias.",
+                ));
             }
-            return Ok(to_binary(&ShowResponse {
-                alias: alias_object,
+
+            return Ok(to_binary(&SearchResponse {
+                r#type: "aliases".to_string(),
+                attributes: alias_attributes,
             })?);
         }
     }
@@ -145,17 +183,18 @@ mod tests {
         };
         handle(&mut deps, env.clone(), create_alias_message).unwrap();
         // Query alias
-        let show_response = query(
+        let search_response = query(
             &mut deps,
-            QueryMsg::Show {
-                alias: alias.to_string(),
+            QueryMsg::Search {
+                search_type: "alias".to_string(),
+                search_value: alias.to_string(),
             },
         )
         .unwrap();
-        let val: ShowResponse = from_binary(&show_response).unwrap();
+        let val: SearchResponse = from_binary(&search_response).unwrap();
         assert_eq!(
             human_address.to_string(),
-            val.alias.unwrap().human_address.to_string()
+            val.attributes.address.to_string()
         );
         // Try deleting an alias that does not exist
         let destroy_alias_message = HandleMsg::Destroy {
@@ -177,8 +216,9 @@ mod tests {
         // Query destroyed alias
         let query_response = query(
             &mut deps,
-            QueryMsg::Show {
-                alias: alias.to_string(),
+            QueryMsg::Search {
+                search_type: "alias".to_string(),
+                search_value: alias.to_string(),
             },
         );
         assert_eq!(query_response.is_err(), true);
@@ -203,21 +243,19 @@ mod tests {
         handle(&mut deps, env.clone(), create_alias_message).unwrap();
 
         // Query alias but with trailing and leading whitespaces
-        let show_response = query(
+        let search_response = query(
             &mut deps,
-            QueryMsg::Show {
-                alias: "nail biter".to_string(),
+            QueryMsg::Search {
+                search_type: "alias".to_string(),
+                search_value: "nail biter".to_string(),
             },
         )
         .unwrap();
-        let val: ShowResponse = from_binary(&show_response).unwrap();
-        assert_eq!(
-            human_address,
-            val.alias.clone().unwrap().human_address.to_string()
-        );
+        let val: SearchResponse = from_binary(&search_response).unwrap();
+        assert_eq!(human_address, val.attributes.clone().address.to_string());
         assert_eq!(
             avatar_url,
-            val.alias.unwrap().avatar_url.unwrap().to_string()
+            val.attributes.clone().avatar_url.unwrap().to_string()
         );
 
         // Create same alias
