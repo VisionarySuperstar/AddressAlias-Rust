@@ -38,7 +38,7 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     let alias_string = alias_string.trim().to_string();
     let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
-    if alias_string_byte_slice.len() > u16::MAX.into() {
+    if alias_string_byte_slice.len() > u8::MAX.into() {
         return Err(StdError::generic_err("Alias is too long."));
     }
     let mut alias_storage = AliasesStorage::from_storage(&mut deps.storage);
@@ -264,7 +264,7 @@ mod tests {
         );
 
         // Create alias that is too long
-        let alias = "Epstein didn't kill himself".repeat(10000);
+        let alias = "Epstein didn't kill himself".repeat(20);
         let create_alias_message = HandleMsg::Create {
             alias: alias.to_string(),
             avatar_url: None,
