@@ -38,9 +38,11 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     let alias_string = alias_string.trim().to_string();
     let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
+    // Check alias size
     if alias_string_byte_slice.len() > u8::MAX.into() {
         return Err(StdError::generic_err("Alias is too long."));
     }
+    // Check that Alias doesn't already exist
     let mut alias_storage = AliasesStorage::from_storage(&mut deps.storage);
     let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string.as_bytes());
     if alias_object.is_none() {
@@ -50,9 +52,16 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
             human_address: sender_human_address.clone(),
         };
         alias_storage.set_alias(alias_string_byte_slice, new_alias);
+        // Check that the user doesn't already have an alias
         let mut addresses_aliases_storage =
             AddressesAliasesStorage::from_storage(&mut deps.storage);
-        addresses_aliases_storage.set_alias(sender_human_address.0.as_bytes(), &alias_string)
+        let alias_key: Option<Vec<u8>> =
+            addresses_aliases_storage.get_alias(&sender_human_address.to_string());
+        if alias_key.is_none() {
+            addresses_aliases_storage.set_alias(sender_human_address.0.as_bytes(), &alias_string)
+        } else {
+            return Err(StdError::generic_err("Only one alias allowed per address."));
+        }
     } else {
         return Err(StdError::generic_err("Alias already exists."));
     }
@@ -287,6 +296,17 @@ mod tests {
 
         // Create alias that is too long
         let alias = "Epstein didn't kill himself".repeat(20);
+        let create_alias_message = HandleMsg::Create {
+            alias: alias.to_string(),
+            avatar_url: None,
+        };
+        assert_eq!(
+            handle(&mut deps, env.clone(), create_alias_message).is_err(),
+            true
+        );
+
+        // Create another alias for the same user
+        let alias = "PNG";
         let create_alias_message = HandleMsg::Create {
             alias: alias.to_string(),
             avatar_url: None,
