@@ -115,7 +115,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
     match msg {
         QueryMsg::Search {
             search_type,
-            search_value,
+            mut search_value,
         } => {
             let alias_object: Option<Alias>;
             let alias_attributes: AliasAttributes;
@@ -126,35 +126,25 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
                 if alias_key.is_none() {
                     return Err(StdError::not_found("Alias"));
                 }
-                let alias_storage = AliasesReadonlyStorage::from_storage(&deps.storage);
-                let alias_string =
+                search_value =
                     String::from_utf8(alias_key.clone().unwrap()).expect("Found invalid UTF-8");
-                alias_object = alias_storage.get_alias(&alias_key.unwrap());
-                if alias_object.is_none() {
-                    return Err(StdError::not_found("Alias"));
-                }
-                alias_attributes = AliasAttributes {
-                    alias: alias_string,
-                    avatar_url: alias_object.clone().unwrap().avatar_url,
-                    address: alias_object.unwrap().human_address,
-                };
-            } else if search_type == "alias" {
-                let alias_storage = AliasesReadonlyStorage::from_storage(&deps.storage);
-                alias_object = alias_storage.get_alias(&search_value.as_bytes());
-                if alias_object.is_none() {
-                    return Err(StdError::not_found("Alias"));
-                }
-                alias_attributes = AliasAttributes {
-                    alias: search_value,
-                    avatar_url: alias_object.clone().unwrap().avatar_url,
-                    address: alias_object.unwrap().human_address,
-                };
-            } else {
+            } else if search_type != "alias" {
                 return Err(StdError::parse_err(
                     "search_type",
                     "must be address or alias.",
                 ));
             }
+
+            let alias_storage = AliasesReadonlyStorage::from_storage(&deps.storage);
+            alias_object = alias_storage.get_alias(&search_value.as_bytes());
+            if alias_object.is_none() {
+                return Err(StdError::not_found("Alias"));
+            }
+            alias_attributes = AliasAttributes {
+                alias: search_value,
+                avatar_url: alias_object.clone().unwrap().avatar_url,
+                address: alias_object.unwrap().human_address,
+            };
 
             return Ok(to_binary(&SearchResponse {
                 r#type: "aliases".to_string(),
