@@ -1,4 +1,5 @@
-use crate::msg::{AliasAttributes, HandleMsg, QueryMsg, SearchResponse};
+use crate::msg::ResponseStatus::Success;
+use crate::msg::{AliasAttributes, HandleAnswer, HandleMsg, QueryMsg, SearchResponse};
 use crate::state::{
     AddressesAliasesReadonlyStorage, AddressesAliasesStorage, Alias, AliasesReadonlyStorage,
     AliasesStorage,
@@ -48,7 +49,7 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
     if alias_object.is_none() {
         let sender_human_address = env.clone().message.sender;
         let new_alias = Alias {
-            avatar_url: avatar_url,
+            avatar_url: avatar_url.clone(),
             human_address: sender_human_address.clone(),
         };
         alias_storage.set_alias(alias_string_byte_slice, new_alias);
@@ -69,7 +70,13 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
     Ok(HandleResponse {
         messages: vec![],
         log: vec![],
-        data: None,
+        data: Some(to_binary(&HandleAnswer::Create {
+            alias: AliasAttributes {
+                alias: alias_string,
+                avatar_url: avatar_url,
+                address: env.message.sender,
+            },
+        })?),
     })
 }
 
@@ -91,12 +98,15 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::Unauthorized { backtrace: None });
     } else {
         alias_storage.remove_alias(alias_string_byte_slice);
+        let mut addresses_aliases_storage =
+            AddressesAliasesStorage::from_storage(&mut deps.storage);
+        addresses_aliases_storage.remove_alias(sender_human_address.0.as_bytes());
     }
 
     Ok(HandleResponse {
         messages: vec![],
         log: vec![],
-        data: None,
+        data: Some(to_binary(&HandleAnswer::Destroy { status: Success })?),
     })
 }
 
