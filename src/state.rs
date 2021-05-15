@@ -30,7 +30,7 @@ impl<'a, S: Storage> AliasesReadonlyStorage<'a, S> {
         }
     }
 
-    pub fn get_alias(&self, key: &String) -> Option<Alias> {
+    pub fn get_alias(&self, key: &[u8]) -> Option<Alias> {
         self.as_readonly().get(key)
     }
 
@@ -51,7 +51,7 @@ impl<'a, S: Storage> AliasesStorage<'a, S> {
         }
     }
 
-    pub fn get_alias(&mut self, key: &String) -> Option<Alias> {
+    pub fn get_alias(&mut self, key: &[u8]) -> Option<Alias> {
         self.as_readonly().get(key)
     }
 
@@ -72,8 +72,8 @@ impl<'a, S: Storage> AliasesStorage<'a, S> {
 
 struct ReadonlyAliasesStorageImpl<'a, S: ReadonlyStorage>(&'a S);
 impl<'a, S: ReadonlyStorage> ReadonlyAliasesStorageImpl<'a, S> {
-    pub fn get(&self, key: &String) -> Option<Alias> {
-        let alias: Option<Alias> = may_load(self.0, &key.as_bytes()).ok().unwrap();
+    pub fn get(&self, key: &[u8]) -> Option<Alias> {
+        let alias: Option<Alias> = may_load(self.0, &key).ok().unwrap();
         alias
     }
 }
@@ -96,8 +96,8 @@ impl<'a, S: Storage> AddressesAliasesReadonlyStorage<'a, S> {
 
     // private
 
-    fn as_readonly(&self) -> ReadonlyAddressAliasesStorageImpl<ReadonlyPrefixedStorage<S>> {
-        ReadonlyAddressAliasesStorageImpl(&self.storage)
+    fn as_readonly(&self) -> ReadonlyAddressesAliasesStorageImpl<ReadonlyPrefixedStorage<S>> {
+        ReadonlyAddressesAliasesStorageImpl(&self.storage)
     }
 }
 
@@ -125,13 +125,13 @@ impl<'a, S: Storage> AddressesAliasesStorage<'a, S> {
 
     // private
 
-    fn as_readonly(&self) -> ReadonlyAddressAliasesStorageImpl<PrefixedStorage<S>> {
-        ReadonlyAddressAliasesStorageImpl(&self.storage)
+    fn as_readonly(&self) -> ReadonlyAddressesAliasesStorageImpl<PrefixedStorage<S>> {
+        ReadonlyAddressesAliasesStorageImpl(&self.storage)
     }
 }
 
-struct ReadonlyAddressAliasesStorageImpl<'a, S: ReadonlyStorage>(&'a S);
-impl<'a, S: ReadonlyStorage> ReadonlyAddressAliasesStorageImpl<'a, S> {
+struct ReadonlyAddressesAliasesStorageImpl<'a, S: ReadonlyStorage>(&'a S);
+impl<'a, S: ReadonlyStorage> ReadonlyAddressesAliasesStorageImpl<'a, S> {
     pub fn get(&self, key: &String) -> Option<Vec<u8>> {
         let alias: Option<Vec<u8>> = may_load(self.0, &key.as_bytes()).ok().unwrap();
         alias

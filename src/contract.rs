@@ -1,7 +1,7 @@
-use crate::msg::AliasAttributes;
-use crate::msg::{HandleMsg, QueryMsg, SearchResponse};
+use crate::msg::{AliasAttributes, HandleMsg, QueryMsg, SearchResponse};
 use crate::state::{
-    AddressesAliasesReadonlyStorage, Alias, AliasesReadonlyStorage, AliasesStorage,
+    AddressesAliasesReadonlyStorage, AddressesAliasesStorage, Alias, AliasesReadonlyStorage,
+    AliasesStorage,
 };
 use cosmwasm_std::{
     to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier, QueryResult, StdError,
@@ -42,14 +42,17 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::generic_err("Alias is too long."));
     }
     let mut alias_storage = AliasesStorage::from_storage(&mut deps.storage);
-    let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string);
+    let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string.as_bytes());
     if alias_object.is_none() {
         let sender_human_address = env.clone().message.sender;
         let new_alias = Alias {
             avatar_url: avatar_url,
-            human_address: sender_human_address,
+            human_address: sender_human_address.clone(),
         };
         alias_storage.set_alias(alias_string_byte_slice, new_alias);
+        let mut addresses_aliases_storage =
+            AddressesAliasesStorage::from_storage(&mut deps.storage);
+        addresses_aliases_storage.set_alias(sender_human_address.0.as_bytes(), &alias_string)
     } else {
         return Err(StdError::generic_err("Alias already exists."));
     }
@@ -67,7 +70,7 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
     alias_string: String,
 ) -> StdResult<HandleResponse> {
     let mut alias_storage = AliasesStorage::from_storage(&mut deps.storage);
-    let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string);
+    let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string.as_bytes());
     let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
     let sender_human_address = env.clone().message.sender;
 
@@ -106,18 +109,20 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
                     return Err(StdError::generic_err("Alias does not exist."));
                 }
                 let alias_storage = AliasesReadonlyStorage::from_storage(&deps.storage);
-                alias_object = alias_storage.get_alias(&search_value);
+                let alias_string =
+                    String::from_utf8(alias_key.clone().unwrap()).expect("Found invalid UTF-8");
+                alias_object = alias_storage.get_alias(&alias_key.unwrap());
                 if alias_object.is_none() {
                     return Err(StdError::generic_err("Alias does not exist."));
                 }
                 alias_attributes = AliasAttributes {
-                    alias: search_value,
+                    alias: alias_string,
                     avatar_url: alias_object.clone().unwrap().avatar_url,
                     address: alias_object.unwrap().human_address,
                 };
             } else if search_type == "alias" {
                 let alias_storage = AliasesReadonlyStorage::from_storage(&deps.storage);
-                alias_object = alias_storage.get_alias(&search_value);
+                alias_object = alias_storage.get_alias(&search_value.as_bytes());
                 if alias_object.is_none() {
                     return Err(StdError::generic_err("Alias does not exist."));
                 }
@@ -224,7 +229,7 @@ mod tests {
         let alias = "   nail biter    ";
         let avatar_url = "https://www.btn.group";
         let mut deps = mock_dependencies(20, &coins(2, "token"));
-        let human_address = "huma";
+        let human_address = "secret34aergaerg3a4fa34g";
         let env = mock_env(human_address, &coins(2, "token"));
 
         // Initialize contract instance
@@ -237,7 +242,7 @@ mod tests {
         };
         handle(&mut deps, env.clone(), create_alias_message).unwrap();
 
-        // Query alias but with trailing and leading whitespaces
+        // Query alias with alias without trailing and leading whitespaces
         let search_response = query(
             &mut deps,
             QueryMsg::Search {
@@ -247,6 +252,23 @@ mod tests {
         )
         .unwrap();
         let val: SearchResponse = from_binary(&search_response).unwrap();
+        assert_eq!(human_address, val.attributes.clone().address.to_string());
+        assert_eq!(
+            avatar_url,
+            val.attributes.clone().avatar_url.unwrap().to_string()
+        );
+
+        // Query alias with address
+        let search_response = query(
+            &mut deps,
+            QueryMsg::Search {
+                search_type: "address".to_string(),
+                search_value: human_address.to_string(),
+            },
+        )
+        .unwrap();
+        let val: SearchResponse = from_binary(&search_response).unwrap();
+        assert_eq!("nail biter", val.attributes.clone().alias.to_string());
         assert_eq!(human_address, val.attributes.clone().address.to_string());
         assert_eq!(
             avatar_url,
