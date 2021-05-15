@@ -40,7 +40,7 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
     let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
     // Check alias size
     if alias_string_byte_slice.len() > u8::MAX.into() {
-        return Err(StdError::generic_err("Alias is too long."));
+        return Err(StdError::generic_err("Alias is too long"));
     }
     // Check that Alias doesn't already exist
     let mut alias_storage = AliasesStorage::from_storage(&mut deps.storage);
@@ -60,10 +60,10 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
         if alias_key.is_none() {
             addresses_aliases_storage.set_alias(sender_human_address.0.as_bytes(), &alias_string)
         } else {
-            return Err(StdError::generic_err("Only one alias allowed per address."));
+            return Err(StdError::generic_err("Address already has an alias"));
         }
     } else {
-        return Err(StdError::generic_err("Alias already exists."));
+        return Err(StdError::generic_err("Alias has already been taken"));
     }
 
     Ok(HandleResponse {
@@ -101,7 +101,6 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
 }
 
 // === QUERY ===
-
 pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
     match msg {
         QueryMsg::Search {
@@ -155,16 +154,29 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
     }
 }
 
-///////////////////////////////////////////////////////////////////////
-//////////////////////////////// Tests ////////////////////////////////
-///////////////////////////////////////////////////////////////////////
-
+// === TESTS ===
 #[cfg(test)]
 mod tests {
     use super::*;
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
     use cosmwasm_std::{coins, from_binary};
+    use std::any::Any;
 
+    fn extract_error_msg<T: Any>(error: StdResult<T>) -> String {
+        match error {
+            Ok(_response) => {
+                panic!("Unexpected query answer")
+            }
+            Err(err) => match err {
+                StdError::GenericErr { msg, .. } => msg,
+                StdError::NotFound { kind, .. } => format!("{} not found", kind),
+                StdError::Unauthorized { .. } => "Unauthorized".to_string(),
+                _ => panic!("Unexpected result from init"),
+            },
+        }
+    }
+
+    // === TESTS ===
     #[test]
     fn proper_initialization() {
         let mut deps = mock_dependencies(20, &[]);
@@ -210,19 +222,21 @@ mod tests {
             alias: "idonotexist".to_string(),
         };
         let res = handle(&mut deps, env.clone(), destroy_alias_message);
-        assert_eq!(res.is_err(), true);
+        let error = extract_error_msg(res);
+        assert_eq!(error, "Alias not found");
         // Try deleting an alias with a different user
         let destroy_alias_message = HandleMsg::Destroy {
             alias: alias.to_string(),
         };
         let res = handle(&mut deps, env_two, destroy_alias_message);
-        assert_eq!(res.is_err(), true);
+        let error = extract_error_msg(res);
+        assert_eq!(error, "Unauthorized");
         // Destroy alias
         let destroy_alias_message = HandleMsg::Destroy {
             alias: alias.to_string(),
         };
         handle(&mut deps, env.clone(), destroy_alias_message).unwrap();
-        // Query destroyed alias
+        // Query destroyed alias via alias
         let query_response = query(
             &mut deps,
             QueryMsg::Search {
@@ -230,7 +244,18 @@ mod tests {
                 search_value: alias.to_string(),
             },
         );
-        assert_eq!(query_response.is_err(), true);
+        let error = extract_error_msg(query_response);
+        assert_eq!(error, "Alias not found");
+        // Query destroyed alias via address
+        let query_response = query(
+            &mut deps,
+            QueryMsg::Search {
+                search_type: "address".to_string(),
+                search_value: human_address.to_string(),
+            },
+        );
+        let error = extract_error_msg(query_response);
+        assert_eq!(error, "Alias not found");
     }
 
     #[test]
@@ -289,10 +314,9 @@ mod tests {
             alias: alias.to_string(),
             avatar_url: None,
         };
-        assert_eq!(
-            handle(&mut deps, env.clone(), create_alias_message).is_err(),
-            true
-        );
+        let response = handle(&mut deps, env.clone(), create_alias_message);
+        let error = extract_error_msg(response);
+        assert_eq!(error, "Alias has already been taken");
 
         // Create alias that is too long
         let alias = "Epstein didn't kill himself".repeat(20);
@@ -300,10 +324,9 @@ mod tests {
             alias: alias.to_string(),
             avatar_url: None,
         };
-        assert_eq!(
-            handle(&mut deps, env.clone(), create_alias_message).is_err(),
-            true
-        );
+        let response = handle(&mut deps, env.clone(), create_alias_message);
+        let error = extract_error_msg(response);
+        assert_eq!(error, "Alias is too long");
 
         // Create another alias for the same user
         let alias = "PNG";
@@ -311,9 +334,8 @@ mod tests {
             alias: alias.to_string(),
             avatar_url: None,
         };
-        assert_eq!(
-            handle(&mut deps, env.clone(), create_alias_message).is_err(),
-            true
-        );
+        let response = handle(&mut deps, env.clone(), create_alias_message);
+        let error = extract_error_msg(response);
+        assert_eq!(error, "Address already has an alias");
     }
 }
