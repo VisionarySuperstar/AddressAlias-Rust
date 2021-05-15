@@ -7,12 +7,6 @@ use cosmwasm_std::{
     to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier, QueryResult, StdError,
     StdResult, Storage,
 };
-use secret_toolkit::utils::pad_handle_result;
-
-// === CONSTANTS ===
-// pad handle responses and log attributes to blocks of 256 bytes to prevent
-// leaking info based on response size
-pub const BLOCK_SIZE: usize = 256;
 
 // === INIT ===
 pub fn init<S: Storage, A: Api, Q: Querier>(
@@ -32,7 +26,8 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::Create { alias, avatar_url } => try_create(deps, env, alias, avatar_url),
         HandleMsg::Destroy { alias } => try_destroy(deps, env, alias),
     };
-    pad_handle_result(response, BLOCK_SIZE)
+    // No need to pad response as all info is public
+    response
 }
 
 fn try_create<S: Storage, A: Api, Q: Querier>(
