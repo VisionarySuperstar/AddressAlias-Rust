@@ -115,7 +115,7 @@ CONTRACT_INSTANCE_ADDRESS=secret1zdh7d9gg82pt6uh3yp3ewdu990mjfva8ceyes9
 secretcli tx compute execute $CONTRACT_INSTANCE_ADDRESS '{"create": { "alias_string": "emily" }}' --from testyyyy
 ```
 
-### When running on production testnet
+### When running on production
 
 - I was provided two options to do this, run my own node or use Datahub Figment.
 - I can't run my own node because I can't get SGX to work on my macbook pro.
@@ -151,3 +151,4 @@ node deploy.js
 
 ## References
 1. Secret contracts guide: https://github.com/enigmampc/secret-contracts-guide
+2. Announcing 'Holodeck' the Official Secret Network Testnet: https://scrt.network/blog/holodeck-secret-testnet/
