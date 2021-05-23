@@ -9,7 +9,6 @@ use cosmwasm_std::{
     StdResult, Storage,
 };
 
-// === INIT ===
 pub fn init<S: Storage, A: Api, Q: Querier>(
     _deps: &mut Extern<S, A, Q>,
     _env: Env,
@@ -17,7 +16,6 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     Ok(InitResponse::default())
 }
 
-// === HANDLE ===
 pub fn handle<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -37,15 +35,16 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
     alias_string: String,
     avatar_url: Option<String>,
 ) -> StdResult<HandleResponse> {
-    let alias_string = alias_string.trim().to_string();
-    let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
+    let alias_string = alias_string.trim();
+    let alias_string_formatted = alias_string.to_lowercase().to_string();
+    let alias_string_byte_slice: &[u8] = alias_string_formatted.as_bytes();
     // Check alias size
     if alias_string_byte_slice.len() > u8::MAX.into() {
         return Err(StdError::generic_err("Alias is too long"));
     }
     // Check that Alias doesn't already exist
     let mut alias_storage = AliasesStorage::from_storage(&mut deps.storage);
-    let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string.as_bytes());
+    let alias_object: Option<Alias> = alias_storage.get_alias(alias_string_byte_slice);
     if alias_object.is_none() {
         let sender_human_address = env.clone().message.sender;
         let new_alias = Alias {
@@ -59,7 +58,8 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
         let alias_key: Option<Vec<u8>> =
             addresses_aliases_storage.get_alias(&sender_human_address.to_string());
         if alias_key.is_none() {
-            addresses_aliases_storage.set_alias(sender_human_address.0.as_bytes(), &alias_string)
+            addresses_aliases_storage
+                .set_alias(sender_human_address.0.as_bytes(), &alias_string_formatted)
         } else {
             return Err(StdError::generic_err("Address already has an alias"));
         }
@@ -72,7 +72,7 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
         log: vec![],
         data: Some(to_binary(&HandleAnswer::Create {
             alias: AliasAttributes {
-                alias: alias_string,
+                alias: alias_string.to_string(),
                 avatar_url: avatar_url,
                 address: env.message.sender,
             },
@@ -85,9 +85,10 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
     env: Env,
     alias_string: String,
 ) -> StdResult<HandleResponse> {
-    let mut alias_storage = AliasesStorage::from_storage(&mut deps.storage);
-    let alias_object: Option<Alias> = alias_storage.get_alias(&alias_string.as_bytes());
+    let alias_string = alias_string.trim().to_lowercase();
     let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
+    let mut alias_storage = AliasesStorage::from_storage(&mut deps.storage);
+    let alias_object: Option<Alias> = alias_storage.get_alias(alias_string_byte_slice);
     let sender_human_address = env.clone().message.sender;
 
     if alias_object.is_none() {
@@ -110,7 +111,6 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
     })
 }
 
-// === QUERY ===
 pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
     match msg {
         QueryMsg::Search {
@@ -128,7 +128,9 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
                 }
                 search_value =
                     String::from_utf8(alias_key.clone().unwrap()).expect("Found invalid UTF-8");
-            } else if search_type != "alias" {
+            } else if search_type == "alias" {
+                search_value = search_value.trim().to_lowercase();
+            } else {
                 return Err(StdError::parse_err(
                     "search_type",
                     "must be address or alias.",
@@ -136,7 +138,7 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
             }
 
             let alias_storage = AliasesReadonlyStorage::from_storage(&deps.storage);
-            alias_object = alias_storage.get_alias(&search_value.as_bytes());
+            alias_object = alias_storage.get_alias(search_value.as_bytes());
             if alias_object.is_none() {
                 return Err(StdError::not_found("Alias"));
             }
@@ -312,6 +314,15 @@ mod tests {
         // Create same alias
         let create_alias_message = HandleMsg::Create {
             alias: alias.to_string(),
+            avatar_url: None,
+        };
+        let response = handle(&mut deps, env.clone(), create_alias_message);
+        let error = extract_error_msg(response);
+        assert_eq!(error, "Alias has already been taken");
+
+        // Create same alias with capitals
+        let create_alias_message = HandleMsg::Create {
+            alias: alias.to_uppercase().to_string(),
             avatar_url: None,
         };
         let response = handle(&mut deps, env.clone(), create_alias_message);
