@@ -65,8 +65,8 @@ const main = async () => {
   const { codeId } = uploadReceipt;
 
   // Create an instance of the Counter contract, providing a starting count
-  const initMsg = {"max_alias_size": 99};
-  const contract = await client.instantiate(codeId, initMsg, `Secret Alias${Math.ceil(Math.random() * 10000)}`)
+  const initMsg = {};
+  const contract = await client.instantiate(codeId, initMsg, `www.btn.group - Address alias`)
     .catch((err) => { throw new Error(`Could not instantiate contract: ${err}`); });
   const { contractAddress } = contract;
   console.log('contract: ', contract);

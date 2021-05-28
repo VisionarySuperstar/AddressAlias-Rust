@@ -1,5 +1,5 @@
 use crate::msg::ResponseStatus::Success;
-use crate::msg::{AliasAttributes, HandleAnswer, HandleMsg, QueryMsg, SearchResponse};
+use crate::msg::{AliasAttributes, HandleAnswer, HandleMsg, InitMsg, QueryMsg, SearchResponse};
 use crate::state::{
     AddressesAliasesReadonlyStorage, AddressesAliasesStorage, Alias, AliasesReadonlyStorage,
     AliasesStorage,
@@ -12,6 +12,7 @@ use cosmwasm_std::{
 pub fn init<S: Storage, A: Api, Q: Querier>(
     _deps: &mut Extern<S, A, Q>,
     _env: Env,
+    _msg: InitMsg,
 ) -> StdResult<InitResponse> {
     Ok(InitResponse::default())
 }
@@ -185,7 +186,7 @@ mod tests {
         let env = mock_env("creator", &coins(1000, "earth"));
 
         // we can just call .unwrap() to assert this was a success
-        let res = init(&mut deps, env).unwrap();
+        let res = init(&mut deps, env, InitMsg {}).unwrap();
         assert_eq!(0, res.messages.len());
     }
 
@@ -198,7 +199,7 @@ mod tests {
         let env_two = mock_env("user2", &coins(2, "token"));
 
         // Initialize contract instance
-        init(&mut deps, env.clone()).unwrap();
+        init(&mut deps, env.clone(), InitMsg {}).unwrap();
         // Create alias
         let create_alias_message = HandleMsg::Create {
             alias: alias.to_string(),
@@ -269,7 +270,7 @@ mod tests {
         let env = mock_env(human_address, &coins(2, "token"));
 
         // Initialize contract instance
-        init(&mut deps, env.clone()).unwrap();
+        init(&mut deps, env.clone(), InitMsg {}).unwrap();
 
         // Create alias
         let create_alias_message = HandleMsg::Create {

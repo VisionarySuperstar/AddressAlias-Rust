@@ -3,7 +3,7 @@ use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
-use secret_alias::msg::{HandleMsg, QueryMsg, SearchResponse};
+use secret_network_address_alias::msg::{HandleMsg, QueryMsg, SearchResponse};
 
 fn main() {
     let mut out_dir = current_dir().unwrap();

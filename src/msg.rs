@@ -10,6 +10,9 @@ pub struct AliasAttributes {
     pub address: HumanAddr,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct InitMsg {}
+
 // We define a custom struct for each query response
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct SearchResponse {

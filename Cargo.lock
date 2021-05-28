@@ -388,7 +388,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "secret-alias"
+name = "secret-network-address-alias"
 version = "0.1.0"
 dependencies = [
  "cosmwasm-schema",
