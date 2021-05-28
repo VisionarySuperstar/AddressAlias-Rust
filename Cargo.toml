@@ -1,6 +1,8 @@
 [package]
-name = "secret-network-address-alias"
-version = "0.1.0"
+name = "cw-secret-network-address-alias"
+version = "1.0.0"
+description = "CosmWasm contract for creating an alias for your address"
+repository = "https://github.com/btn-group/address-alias"
 authors = ["Steven Chang <steven.chang@btn.group>"]
 edition = "2018"
 
