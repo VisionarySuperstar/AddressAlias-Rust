@@ -5,6 +5,17 @@
     {
       "type": "object",
       "required": [
+        "config"
+      ],
+      "properties": {
+        "config": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
         "search"
       ],
       "properties": {

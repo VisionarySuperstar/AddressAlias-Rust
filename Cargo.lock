@@ -161,6 +161,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "cw-secret-network-address-alias"
+version = "1.0.0"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "schemars",
+ "secret-toolkit",
+ "serde",
+ "snafu",
+]
+
+[[package]]
 name = "digest"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -385,19 +398,6 @@ dependencies = [
  "quote",
  "serde_derive_internals",
  "syn",
-]
-
-[[package]]
-name = "secret-network-address-alias"
-version = "0.1.0"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cosmwasm-storage",
- "schemars",
- "secret-toolkit",
- "serde",
- "snafu",
 ]
 
 [[package]]

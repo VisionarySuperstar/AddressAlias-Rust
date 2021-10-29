@@ -1,20 +1,42 @@
 use crate::msg::ResponseStatus::Success;
-use crate::msg::{AliasAttributes, HandleAnswer, HandleMsg, InitMsg, QueryMsg, SearchResponse};
+use crate::msg::{
+    AliasAttributes, HandleAnswer, HandleMsg, InitMsg, QueryAnswer, QueryMsg, SearchResponse,
+};
 use crate::state::{
     AddressesAliasesReadonlyStorage, AddressesAliasesStorage, Alias, AliasesReadonlyStorage,
-    AliasesStorage,
+    AliasesStorage, Config,
 };
 use cosmwasm_std::{
     to_binary, Api, Env, Extern, HandleResponse, InitResponse, Querier, QueryResult, StdError,
     StdResult, Storage,
 };
+use secret_toolkit::snip20;
+use secret_toolkit::storage::{TypedStore, TypedStoreMut};
+
+pub const BLOCK_SIZE: usize = 1;
+pub const CONFIG_KEY: &[u8] = b"config";
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
-    _deps: &mut Extern<S, A, Q>,
-    _env: Env,
-    _msg: InitMsg,
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    msg: InitMsg,
 ) -> StdResult<InitResponse> {
-    Ok(InitResponse::default())
+    let mut config_store = TypedStoreMut::attach(&mut deps.storage);
+    let config: Config = Config {
+        buttcoin: msg.buttcoin.clone(),
+    };
+    config_store.store(CONFIG_KEY, &config)?;
+
+    Ok(InitResponse {
+        messages: vec![snip20::register_receive_msg(
+            env.contract_code_hash.clone(),
+            None,
+            BLOCK_SIZE,
+            config.buttcoin.contract_hash,
+            config.buttcoin.address,
+        )?],
+        log: vec![],
+    })
 }
 
 pub fn handle<S: Storage, A: Api, Q: Querier>(
@@ -114,6 +136,7 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
 
 pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryMsg) -> QueryResult {
     match msg {
+        QueryMsg::Config {} => query_config(deps),
         QueryMsg::Search {
             search_type,
             mut search_value,
@@ -157,11 +180,21 @@ pub fn query<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>, msg: QueryM
     }
 }
 
+fn query_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> QueryResult {
+    let config: Config = TypedStore::attach(&deps.storage).load(CONFIG_KEY)?;
+
+    to_binary(&QueryAnswer::Config {
+        buttcoin: config.buttcoin,
+    })
+}
+
 // === TESTS ===
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use crate::state::SecretContract;
+    use cosmwasm_std::testing::*;
+    use cosmwasm_std::HumanAddr;
     use cosmwasm_std::{coins, from_binary};
     use std::any::Any;
 
@@ -179,27 +212,42 @@ mod tests {
         }
     }
 
-    // === TESTS ===
-    #[test]
-    fn proper_initialization() {
+    //=== HELPER FUNCTIONS ===
+    fn init_helper() -> (
+        StdResult<InitResponse>,
+        Extern<MockStorage, MockApi, MockQuerier>,
+    ) {
         let mut deps = mock_dependencies(20, &[]);
-        let env = mock_env("creator", &coins(1000, "earth"));
+        let env = mock_env(mock_user_address(), &[]);
 
-        // we can just call .unwrap() to assert this was a success
-        let res = init(&mut deps, env, InitMsg {}).unwrap();
-        assert_eq!(0, res.messages.len());
+        let init_msg = InitMsg {
+            buttcoin: mock_buttcoin(),
+        };
+
+        (init(&mut deps, env, init_msg), deps)
     }
 
+    fn mock_buttcoin() -> SecretContract {
+        SecretContract {
+            address: HumanAddr("buttcoin-address".to_string()),
+            contract_hash: "buttcoin-contract-hash".to_string(),
+        }
+    }
+
+    fn mock_user_address() -> HumanAddr {
+        HumanAddr::from("some-geezer")
+    }
+
+    // === TESTS ===
     #[test]
     fn test_try_destroy() {
         let alias: &str = "nailbiter";
         let human_address = "why";
-        let mut deps = mock_dependencies(20, &coins(2, "token"));
         let env = mock_env(human_address, &coins(2, "token"));
         let env_two = mock_env("user2", &coins(2, "token"));
 
-        // Initialize contract instance
-        init(&mut deps, env.clone(), InitMsg {}).unwrap();
+        // Initialize
+        let (_init_result, mut deps) = init_helper();
         // Create alias
         let create_alias_message = HandleMsg::Create {
             alias: alias.to_string(),
@@ -265,12 +313,11 @@ mod tests {
     fn test_try_create() {
         let alias = "   nail biter    ";
         let avatar_url = "https://www.btn.group";
-        let mut deps = mock_dependencies(20, &coins(2, "token"));
         let human_address = "secret34aergaerg3a4fa34g";
         let env = mock_env(human_address, &coins(2, "token"));
 
-        // Initialize contract instance
-        init(&mut deps, env.clone(), InitMsg {}).unwrap();
+        // Initialize
+        let (_init_result, mut deps) = init_helper();
 
         // Create alias
         let create_alias_message = HandleMsg::Create {
@@ -349,5 +396,20 @@ mod tests {
         let response = handle(&mut deps, env.clone(), create_alias_message);
         let error = extract_error_msg(response);
         assert_eq!(error, "Address already has an alias");
+    }
+
+    // === QUERY TESTS ===
+
+    #[test]
+    fn test_query_config() {
+        let (_init_result, deps) = init_helper();
+        let config: Config = TypedStore::attach(&deps.storage).load(CONFIG_KEY).unwrap();
+        let query_result = query(&deps, QueryMsg::Config {}).unwrap();
+        let query_answer: QueryAnswer = from_binary(&query_result).unwrap();
+        match query_answer {
+            QueryAnswer::Config { buttcoin } => {
+                assert_eq!(buttcoin, config.buttcoin);
+            }
+        }
     }
 }
