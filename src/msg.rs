@@ -1,5 +1,5 @@
 use crate::state::SecretContract;
-use cosmwasm_std::HumanAddr;
+use cosmwasm_std::{Binary, HumanAddr, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -27,19 +27,20 @@ pub struct SearchResponse {
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum HandleAnswer {
-    Create { alias: AliasAttributes },
     Destroy { status: ResponseStatus },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum HandleMsg {
-    Create {
-        alias: String,
-        avatar_url: Option<String>,
-    },
     Destroy {
         alias: String,
+    },
+    Receive {
+        sender: HumanAddr,
+        from: HumanAddr,
+        amount: Uint128,
+        msg: Binary,
     },
 }
 
@@ -56,6 +57,21 @@ pub enum QueryMsg {
     Search {
         search_type: String,
         search_value: String,
+    },
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum ReceiveAnswer {
+    Create { status: ResponseStatus },
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum ReceiveMsg {
+    Create {
+        alias: String,
+        avatar_url: Option<String>,
     },
 }
 
