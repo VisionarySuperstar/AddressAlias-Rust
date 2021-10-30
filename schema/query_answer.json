@@ -11,10 +11,14 @@
         "config": {
           "type": "object",
           "required": [
-            "buttcoin"
+            "buttcoin",
+            "profit_distributor"
           ],
           "properties": {
             "buttcoin": {
+              "$ref": "#/definitions/SecretContract"
+            },
+            "profit_distributor": {
               "$ref": "#/definitions/SecretContract"
             }
           }

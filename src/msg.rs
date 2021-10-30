@@ -14,6 +14,7 @@ pub struct AliasAttributes {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InitMsg {
     pub buttcoin: SecretContract,
+    pub profit_distributor: SecretContract,
 }
 
 // We define a custom struct for each query response
@@ -47,7 +48,10 @@ pub enum HandleMsg {
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryAnswer {
-    Config { buttcoin: SecretContract },
+    Config {
+        buttcoin: SecretContract,
+        profit_distributor: SecretContract,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
