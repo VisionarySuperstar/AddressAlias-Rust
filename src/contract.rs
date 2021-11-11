@@ -27,7 +27,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     let mut config_store = TypedStoreMut::attach(&mut deps.storage);
     let config: Config = Config {
         buttcoin: msg.buttcoin.clone(),
-        profit_distributor: msg.profit_distributor,
+        buttcoin_distributor: msg.buttcoin_distributor,
     };
     config_store.store(CONFIG_KEY, &config)?;
 
@@ -206,7 +206,7 @@ fn query_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> Query
 
     to_binary(&QueryAnswer::Config {
         buttcoin: config.buttcoin,
-        profit_distributor: config.profit_distributor,
+        buttcoin_distributor: config.buttcoin_distributor,
     })
 }
 
@@ -244,7 +244,7 @@ mod tests {
 
         let init_msg = InitMsg {
             buttcoin: mock_buttcoin(),
-            profit_distributor: mock_profit_distributor(),
+            buttcoin_distributor: mock_buttcoin_distributor(),
         };
 
         (init(&mut deps, env, init_msg), deps)
@@ -257,7 +257,7 @@ mod tests {
         }
     }
 
-    fn mock_profit_distributor() -> SecretContract {
+    fn mock_buttcoin_distributor() -> SecretContract {
         SecretContract {
             address: HumanAddr("profit-sharing-contract-address".to_string()),
             contract_hash: "profit-sharing-contract-hash".to_string(),
@@ -439,10 +439,10 @@ mod tests {
         match query_answer {
             QueryAnswer::Config {
                 buttcoin,
-                profit_distributor,
+                buttcoin_distributor,
             } => {
                 assert_eq!(buttcoin, config.buttcoin);
-                assert_eq!(profit_distributor, config.profit_distributor);
+                assert_eq!(buttcoin_distributor, config.buttcoin_distributor);
             }
         }
     }

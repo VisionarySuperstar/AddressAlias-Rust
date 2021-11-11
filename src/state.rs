@@ -19,7 +19,7 @@ pub struct Alias {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Config {
     pub buttcoin: SecretContract,
-    pub profit_distributor: SecretContract,
+    pub buttcoin_distributor: SecretContract,
 }
 
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone, JsonSchema)]

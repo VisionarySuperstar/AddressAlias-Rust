@@ -4,13 +4,13 @@
   "type": "object",
   "required": [
     "buttcoin",
-    "profit_distributor"
+    "buttcoin_distributor"
   ],
   "properties": {
     "buttcoin": {
       "$ref": "#/definitions/SecretContract"
     },
-    "profit_distributor": {
+    "buttcoin_distributor": {
       "$ref": "#/definitions/SecretContract"
     }
   },
