@@ -277,75 +277,89 @@ mod tests {
     }
 
     // === TESTS ===
-    // #[test]
-    // fn test_try_destroy() {
-    //     let alias: &str = "nailbiter";
-    //     let human_address = "why";
-    //     let env = mock_env(human_address, &coins(2, "token"));
-    //     let env_two = mock_env("user2", &coins(2, "token"));
+    #[test]
+    fn test_try_destroy() {
+        let alias: &str = "nailbiter";
 
-    //     // Initialize
-    //     let (_init_result, mut deps) = init_helper();
-    //     // Create alias
-    //     let create_alias_message = HandleMsg::Create {
-    //         alias: alias.to_string(),
-    //         avatar_url: None,
-    //     };
-    //     handle(&mut deps, env.clone(), create_alias_message).unwrap();
-    //     // Query alias
-    //     let search_response = query(
-    //         &mut deps,
-    //         QueryMsg::Search {
-    //             search_type: "alias".to_string(),
-    //             search_value: alias.to_string(),
-    //         },
-    //     )
-    //     .unwrap();
-    //     let val: SearchResponse = from_binary(&search_response).unwrap();
-    //     assert_eq!(
-    //         human_address.to_string(),
-    //         val.attributes.address.to_string()
-    //     );
-    //     // Try deleting an alias that does not exist
-    //     let destroy_alias_message = HandleMsg::Destroy {
-    //         alias: "idonotexist".to_string(),
-    //     };
-    //     let res = handle(&mut deps, env.clone(), destroy_alias_message);
-    //     let error = extract_error_msg(res);
-    //     assert_eq!(error, "Alias not found");
-    //     // Try deleting an alias with a different user
-    //     let destroy_alias_message = HandleMsg::Destroy {
-    //         alias: alias.to_string(),
-    //     };
-    //     let res = handle(&mut deps, env_two, destroy_alias_message);
-    //     let error = extract_error_msg(res);
-    //     assert_eq!(error, "Unauthorized");
-    //     // Destroy alias
-    //     let destroy_alias_message = HandleMsg::Destroy {
-    //         alias: alias.to_string(),
-    //     };
-    //     handle(&mut deps, env.clone(), destroy_alias_message).unwrap();
-    //     // Query destroyed alias via alias
-    //     let query_response = query(
-    //         &mut deps,
-    //         QueryMsg::Search {
-    //             search_type: "alias".to_string(),
-    //             search_value: alias.to_string(),
-    //         },
-    //     );
-    //     let error = extract_error_msg(query_response);
-    //     assert_eq!(error, "Alias not found");
-    //     // Query destroyed alias via address
-    //     let query_response = query(
-    //         &mut deps,
-    //         QueryMsg::Search {
-    //             search_type: "address".to_string(),
-    //             search_value: human_address.to_string(),
-    //         },
-    //     );
-    //     let error = extract_error_msg(query_response);
-    //     assert_eq!(error, "Alias not found");
-    // }
+        // Initialize
+        let (_init_result, mut deps) = init_helper();
+
+        // when alias exists
+        let create_alias_message = ReceiveMsg::Create {
+            alias: alias.to_string(),
+            avatar_url: None,
+        };
+        let receive_msg = HandleMsg::Receive {
+            sender: mock_user_address(),
+            from: mock_user_address(),
+            amount: Uint128(AMOUNT_FOR_TRANSACTION),
+            msg: to_binary(&create_alias_message).unwrap(),
+        };
+        let handle_result = handle(
+            &mut deps,
+            mock_env(mock_buttcoin().address, &[]),
+            receive_msg.clone(),
+        );
+        handle_result.unwrap();
+
+        // = when user tries to delete an alias that does not exist
+        // = * it raises an error
+        let destroy_alias_message = HandleMsg::Destroy {
+            alias: "idonotexist".to_string(),
+        };
+        let res = handle(
+            &mut deps,
+            mock_env(mock_user_address(), &[]),
+            destroy_alias_message,
+        );
+        let error = extract_error_msg(res);
+        assert_eq!(error, "Alias not found");
+
+        // = when user tries to delete an alias that belongs to someone else
+        // = * it raises an error
+        let destroy_alias_message = HandleMsg::Destroy {
+            alias: alias.to_string(),
+        };
+        let res = handle(
+            &mut deps,
+            mock_env(mock_buttcoin().address, &[]),
+            destroy_alias_message,
+        );
+        let error = extract_error_msg(res);
+        assert_eq!(error, "Unauthorized");
+
+        // = when user destroy their own alias
+        // = * alias is removed
+        let destroy_alias_message = HandleMsg::Destroy {
+            alias: alias.to_string(),
+        };
+        handle(
+            &mut deps,
+            mock_env(mock_user_address(), &[]),
+            destroy_alias_message,
+        )
+        .unwrap();
+        // Query destroyed alias via alias
+        let query_response = query(
+            &mut deps,
+            QueryMsg::Search {
+                search_type: "alias".to_string(),
+                search_value: alias.to_string(),
+            },
+        );
+        let error = extract_error_msg(query_response);
+        assert_eq!(error, "Alias not found");
+        // Query destroyed alias via address
+        let query_response = query(
+            &mut deps,
+            QueryMsg::Search {
+                search_type: "address".to_string(),
+                search_value: mock_user_address().to_string(),
+            },
+        );
+        let error = extract_error_msg(query_response);
+        assert_eq!(error, "Alias not found");
+    }
 
     #[test]
     fn test_try_create() {
