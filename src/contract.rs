@@ -15,7 +15,7 @@ use cosmwasm_std::{
 use secret_toolkit::snip20;
 use secret_toolkit::storage::{TypedStore, TypedStoreMut};
 
-pub const AMOUNT_FOR_TRANSACTION: u128 = 55_000_000;
+pub const AMOUNT_FOR_TRANSACTION: u128 = 1_000_000;
 pub const BLOCK_SIZE: usize = 1;
 pub const CONFIG_KEY: &[u8] = b"config";
 
@@ -456,7 +456,11 @@ mod tests {
         };
 
         // = * it raises an error
-        let response = handle(&mut deps, mock_env(mock_buttcoin().address, &[]), receive_msg);
+        let response = handle(
+            &mut deps,
+            mock_env(mock_buttcoin().address, &[]),
+            receive_msg,
+        );
         let error = extract_error_msg(response);
         assert_eq!(error, "Alias has already been taken");
 
@@ -474,7 +478,11 @@ mod tests {
         };
 
         // = * it raises an error
-        let response = handle(&mut deps, mock_env(mock_buttcoin().address, &[]), receive_msg);
+        let response = handle(
+            &mut deps,
+            mock_env(mock_buttcoin().address, &[]),
+            receive_msg,
+        );
         let error = extract_error_msg(response);
         assert_eq!(error, "Alias is too long");
 
@@ -491,7 +499,11 @@ mod tests {
             amount: Uint128(AMOUNT_FOR_TRANSACTION),
             msg: to_binary(&create_alias_message).unwrap(),
         };
-        let response = handle(&mut deps, mock_env(mock_buttcoin().address, &[]), receive_msg);
+        let response = handle(
+            &mut deps,
+            mock_env(mock_buttcoin().address, &[]),
+            receive_msg,
+        );
         let error = extract_error_msg(response);
         assert_eq!(error, "Address already has an alias");
     }
