@@ -27,7 +27,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     let mut config_store = TypedStoreMut::attach(&mut deps.storage);
     let config: Config = Config {
         buttcoin: msg.buttcoin.clone(),
-        buttcoin_distributor: msg.buttcoin_distributor,
+        butt_lode: msg.butt_lode,
     };
     config_store.store(CONFIG_KEY, &config)?;
 
@@ -120,7 +120,7 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
 
     Ok(HandleResponse {
         messages: vec![snip20::transfer_msg(
-            config.buttcoin_distributor.address,
+            config.butt_lode.address,
             Uint128(AMOUNT_FOR_TRANSACTION),
             None,
             BLOCK_SIZE,
@@ -214,7 +214,7 @@ fn query_config<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> Query
 
     to_binary(&QueryAnswer::Config {
         buttcoin: config.buttcoin,
-        buttcoin_distributor: config.buttcoin_distributor,
+        butt_lode: config.butt_lode,
     })
 }
 
@@ -252,7 +252,7 @@ mod tests {
 
         let init_msg = InitMsg {
             buttcoin: mock_buttcoin(),
-            buttcoin_distributor: mock_buttcoin_distributor(),
+            butt_lode: mock_butt_lode(),
         };
 
         (init(&mut deps, env, init_msg), deps)
@@ -265,7 +265,7 @@ mod tests {
         }
     }
 
-    fn mock_buttcoin_distributor() -> SecretContract {
+    fn mock_butt_lode() -> SecretContract {
         SecretContract {
             address: HumanAddr("profit-sharing-contract-address".to_string()),
             contract_hash: "profit-sharing-contract-hash".to_string(),
@@ -405,7 +405,7 @@ mod tests {
         assert_eq!(
             handle_result_unwrapped.messages,
             vec![snip20::transfer_msg(
-                mock_buttcoin_distributor().address,
+                mock_butt_lode().address,
                 Uint128(AMOUNT_FOR_TRANSACTION),
                 None,
                 BLOCK_SIZE,
@@ -533,10 +533,10 @@ mod tests {
         match query_answer {
             QueryAnswer::Config {
                 buttcoin,
-                buttcoin_distributor,
+                butt_lode,
             } => {
                 assert_eq!(buttcoin, config.buttcoin);
-                assert_eq!(buttcoin_distributor, config.buttcoin_distributor);
+                assert_eq!(butt_lode, config.butt_lode);
             }
         }
     }
