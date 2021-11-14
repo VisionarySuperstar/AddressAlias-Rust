@@ -117,7 +117,7 @@ fn try_create<S: Storage, A: Api, Q: Querier>(
     let alias_object: Option<Alias> = alias_storage.get_alias(alias_string_byte_slice);
     if alias_object.is_none() {
         let new_alias = Alias {
-            avatar_url: avatar_url.clone(),
+            avatar_url: avatar_url,
             human_address: from.clone(),
         };
         alias_storage.set_alias(alias_string_byte_slice, new_alias);
@@ -157,20 +157,15 @@ fn try_destroy<S: Storage, A: Api, Q: Querier>(
     let alias_string_byte_slice: &[u8] = alias_string.as_bytes();
     let mut alias_storage = AliasesStorage::from_storage(&mut deps.storage);
     let alias_object: Option<Alias> = alias_storage.get_alias(alias_string_byte_slice);
-    let sender_human_address = env.clone().message.sender;
-
     if alias_object.is_none() {
         return Err(StdError::not_found("Alias"));
     }
     let alias_object: Alias = alias_object.unwrap();
-    if sender_human_address != alias_object.human_address {
-        return Err(StdError::Unauthorized { backtrace: None });
-    } else {
-        alias_storage.remove_alias(alias_string_byte_slice);
-        let mut addresses_aliases_storage =
-            AddressesAliasesStorage::from_storage(&mut deps.storage);
-        addresses_aliases_storage.remove_alias(sender_human_address.0.as_bytes());
-    }
+    authorize(env.message.sender.clone(), alias_object.human_address)?;
+
+    alias_storage.remove_alias(alias_string_byte_slice);
+    let mut addresses_aliases_storage = AddressesAliasesStorage::from_storage(&mut deps.storage);
+    addresses_aliases_storage.remove_alias(env.message.sender.0.as_bytes());
 
     Ok(HandleResponse {
         messages: vec![],
