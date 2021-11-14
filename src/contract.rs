@@ -30,6 +30,22 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         butt_lode: msg.butt_lode,
     };
     config_store.store(CONFIG_KEY, &config)?;
+    for alias_attributes in msg.aliases {
+        let mut alias_storage = AliasesStorage::from_storage(&mut deps.storage);
+        let new_alias: Alias = Alias {
+            avatar_url: alias_attributes.avatar_url,
+            human_address: alias_attributes.address.clone(),
+        };
+        let alias_string_byte_slice: &[u8] = alias_attributes.alias.as_bytes();
+        alias_storage.set_alias(alias_string_byte_slice, new_alias);
+        // Check that the user doesn't already have an alias
+        let mut addresses_aliases_storage =
+            AddressesAliasesStorage::from_storage(&mut deps.storage);
+        addresses_aliases_storage.set_alias(
+            alias_attributes.address.0.as_bytes(),
+            &alias_attributes.alias,
+        )
+    }
 
     Ok(InitResponse {
         messages: vec![snip20::register_receive_msg(
@@ -65,7 +81,7 @@ fn receive<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HandleResponse> {
     let config: Config = TypedStore::attach(&deps.storage).load(CONFIG_KEY)?;
     // Ensure that the sent tokens are Buttcoins
-    authorize(config.buttcoin.address.clone(), env.message.sender.clone())?;
+    authorize(config.buttcoin.address, env.message.sender)?;
 
     // Ensure that amount sent in is 1 Buttcoin
     if amount != Uint128(AMOUNT_FOR_TRANSACTION) {
@@ -251,6 +267,11 @@ mod tests {
         let env = mock_env(mock_user_address(), &[]);
 
         let init_msg = InitMsg {
+            aliases: vec![AliasAttributes {
+                alias: "epstein didn't kill himself".to_string(),
+                address: HumanAddr::from("frump"),
+                avatar_url: None,
+            }],
             buttcoin: mock_buttcoin(),
             butt_lode: mock_butt_lode(),
         };
@@ -401,7 +422,7 @@ mod tests {
         );
         let handle_result_unwrapped = handle_result.unwrap();
 
-        // = * it sends the BUTT to the Buttcoin distributor
+        // = * it sends the BUTT to the BUTT lode
         assert_eq!(
             handle_result_unwrapped.messages,
             vec![snip20::transfer_msg(
@@ -447,10 +468,20 @@ mod tests {
         );
 
         // = when alias already exists
+        let create_alias_message_two = ReceiveMsg::Create {
+            alias: "Epstein didn't kill himself".to_string(),
+            avatar_url: Some(avatar_url.to_string()),
+        };
+        let receive_msg_two = HandleMsg::Receive {
+            sender: HumanAddr::from("crump"),
+            from: HumanAddr::from("crump"),
+            amount: Uint128(AMOUNT_FOR_TRANSACTION),
+            msg: to_binary(&create_alias_message_two).unwrap(),
+        };
         let handle_result = handle(
             &mut deps,
             mock_env(mock_buttcoin().address, &[]),
-            receive_msg.clone(),
+            receive_msg_two,
         );
 
         // = * it raises an error
@@ -508,8 +539,8 @@ mod tests {
             avatar_url: None,
         };
         let receive_msg = HandleMsg::Receive {
-            sender: mock_user_address(),
-            from: mock_user_address(),
+            sender: HumanAddr::from("frump"),
+            from: HumanAddr::from("frump"),
             amount: Uint128(AMOUNT_FOR_TRANSACTION),
             msg: to_binary(&create_alias_message).unwrap(),
         };

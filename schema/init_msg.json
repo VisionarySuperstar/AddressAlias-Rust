@@ -3,10 +3,17 @@
   "title": "InitMsg",
   "type": "object",
   "required": [
+    "aliases",
     "butt_lode",
     "buttcoin"
   ],
   "properties": {
+    "aliases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/AliasAttributes"
+      }
+    },
     "butt_lode": {
       "$ref": "#/definitions/SecretContract"
     },
@@ -15,6 +22,27 @@
     }
   },
   "definitions": {
+    "AliasAttributes": {
+      "type": "object",
+      "required": [
+        "address",
+        "alias"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/HumanAddr"
+        },
+        "alias": {
+          "type": "string"
+        },
+        "avatar_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
     "HumanAddr": {
       "type": "string"
     },

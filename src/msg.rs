@@ -15,6 +15,7 @@ pub struct AliasAttributes {
 pub struct InitMsg {
     pub buttcoin: SecretContract,
     pub butt_lode: SecretContract,
+    pub aliases: Vec<AliasAttributes>,
 }
 
 // We define a custom struct for each query response
