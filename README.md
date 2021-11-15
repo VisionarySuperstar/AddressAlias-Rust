@@ -37,8 +37,6 @@ cd code
 
 # Store contracts required for test
 secretcli tx compute store buttcoin.wasm.gz --from a --gas 3000000 -y --keyring-backend test
-secretcli tx compute store snip-20-reference-impl.wasm.gz --from a --gas 3000000 -y --keyring-backend test
-secretcli tx compute store profit-distributor-b.wasm.gz --from a --gas 3000000 -y --keyring-backend test
 secretcli tx compute store butt-lode.wasm.gz --from a --gas 3000000 -y --keyring-backend test
 secretcli tx compute store address-alias.wasm.gz --from a --gas 3000000 -y --keyring-backend test
 
@@ -53,24 +51,6 @@ secretcli tx compute instantiate $CODE_ID "$INIT" --from a --label "Buttcoin" -y
 # Set viewing key for Buttcoin
 secretcli tx compute execute secret18vd8fpwxzck93qlwghaj6arh4p7c5n8978vsyg '{"set_viewing_key": { "key": "testing" }}' --from a -y --keyring-backend test
 secretcli tx compute execute secret18vd8fpwxzck93qlwghaj6arh4p7c5n8978vsyg '{"set_viewing_key": { "key": "testing" }}' --from b -y --keyring-backend test
-
-# Init stake token
-CODE_ID=2
-INIT='{"name": "Secret Finance", "symbol": "SEFI", "decimals": 6, "prng_seed": "testing", "config": {"enable_burn": true, "enable_mint": true, "public_total_supply": true}}'
-secretcli tx compute instantiate $CODE_ID "$INIT" --from a --label "sefi" -y --keyring-backend test --gas 3000000 --gas-prices=3.0uscrt
-
-# Mint SEFI to users
-secretcli tx compute execute secret10pyejy66429refv3g35g2t7am0was7ya6hvrzf '{ "mint": { "recipient": "secret1qwkd2mdr0w79fyz6zyljs7u3cnff6dtekp3y39", "amount": "1000000000000000000" } }' --from a -y --keyring-backend test --gas 3000000 --gas-prices=3.0uscrt
-secretcli tx compute execute secret10pyejy66429refv3g35g2t7am0was7ya6hvrzf '{ "mint": { "recipient": "secret1wz95rde3wrf9e4hvdtwgey4d9zeys35sevchg5", "amount": "1000000000000000000" } }' --from a -y --keyring-backend test --gas 3000000 --gas-prices=3.0uscrt
-
-# Set viewing key for SEFI
-secretcli tx compute execute secret10pyejy66429refv3g35g2t7am0was7ya6hvrzf '{"set_viewing_key": { "key": "testing" }}' --from a -y --keyring-backend test
-secretcli tx compute execute secret10pyejy66429refv3g35g2t7am0was7ya6hvrzf '{"set_viewing_key": { "key": "testing" }}' --from b -y --keyring-backend test
-
-# Init profit distributor B
-CODE_ID=3
-INIT='{"incentivized_token": {"address": "secret18vd8fpwxzck93qlwghaj6arh4p7c5n8978vsyg", "contract_hash": "4CD7F64B9ADE65200E595216265932A0C7689C4804BE7B4A5F8CEBED250BF7EA"}, "profit_token": {"address": "secret10pyejy66429refv3g35g2t7am0was7ya6hvrzf", "contract_hash": "35F5DB2BC5CD56815D10C7A567D6827BECCB8EAF45BC3FA016930C4A8209EA69"}, "viewing_key": "DoTheRightThing."}'
-secretcli tx compute instantiate $CODE_ID "$INIT" --from a --label "profit-distributor-b" -y --keyring-backend test --gas 3000000 --gas-prices=3.0uscrt
 
 # Init BUTT lode
 CODE_ID=4
